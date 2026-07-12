@@ -4,7 +4,7 @@ from datetime import date
 from app.db import Base
 
 class ShiftRequest(Base):
-    _tablename__ = "shift_requests"
+    __tablename__ = "shift_requests"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     shift_date: Mapped[date] = mapped_column(Date)

@@ -7,57 +7,57 @@ from app.models import shift_model, user_model
 from app.schemas import shift_schema
 
 # ユーザーごとのシフト希望一覧取得
-def get_user_shift_requests(
-        year: int,
-        month: int,
+def get_user_shift_request(
+        start: date,
+        end: date,
         current_user: user_model.User,
         db: Session
-) -> shift_schema.ShiftRequestResponse:
-    start = date(year, month, 1)
-    end = date(year, month+1, 1) if month < 12 else date(year+1, 1, 1)
-
-    stmt = select(shift_model.ShiftRequest).where(
-        shift_model.ShiftRequest.user_id == current_user.id,
-        shift_model.ShiftRequest.shift_date >= start,
-        shift_model.ShiftRequest.shift_date < end
-    )
-    db_shift_requests = db.execute(stmt).scalars().all()
-
-    shifts = [
-        shift_schema.ShiftRequestCreate(
-            shift_date = shift_request.shift_date,
-            remark = shift_request.remark
+) -> shift_schema.ShiftRequest:
+    stmt = (
+        select(
+            shift_model.ShiftRequest.shift_date,
+            shift_model.ShiftRequest.remark
+        ).where(
+            shift_model.ShiftRequest.user_id == current_user.id,
+            shift_model.ShiftRequest.shift_date >= start,
+            shift_model.ShiftRequest.shift_date <= end
         )
-        for shift_request in db_shift_requests
+    )
+    db_shift_requests = db.execute(stmt).all()
+
+    shift_dates = [
+        shift_schema.ShiftRequestDate(
+            shift_date = shift_date,
+            remark = remark
+        )
+        for shift_date, remark in db_shift_requests
     ]
 
-    return shift_schema.ShiftRequestResponse(
-        shifts = shifts,
-        user_name = current_user.name
+    return shift_schema.ShiftRequest(
+        user_id = current_user.id,
+        user_name = current_user.name,
+        shift_dates = shift_dates
     )
 
-# シフト希望作成、更新
+# シフト希望作成
 def create_shift_request(
-        year: int,
-        month: int,
-        shift_requests: list[shift_schema.ShiftRequestCreate],
+        start: date,
+        end: date,
+        shift_request_dates: list[shift_schema.ShiftRequestDate],
         current_user: user_model.User,
         db: Session
 ) -> dict:
-    start = date(year, month, 1)
-    end = date(year, month+1, 1) if month < 12 else date(year+1, 1, 1)
-
     stmt = delete(shift_model.ShiftRequest).where(
         shift_model.ShiftRequest.user_id == current_user.id,
         shift_model.ShiftRequest.shift_date >= start,
-        shift_model.ShiftRequest.shift_date < end
+        shift_model.ShiftRequest.shift_date <= end
     )
     db.execute(stmt)
 
-    for shift_request in shift_requests:
+    for shift_request_date in shift_request_dates:
         db_shift_request = shift_model.ShiftRequest(
-            shift_date = shift_request.shift_date,
-            remark = shift_request.remark,
+            shift_date = shift_request_date.shift_date,
+            remark = shift_request_date.remark,
             user_id = current_user.id
         )
 
@@ -65,54 +65,58 @@ def create_shift_request(
 
     db.commit()
 
-    return {"message": "シフト提出完了"}
+    return {"message": "シフト希望登録完了"}
 
-# 月ごとのシフト希望一覧取得
-def get_all_shift_requests(
-        year: int,
-        month: int,
+# 指定範囲のシフト希望一覧取得
+def get_shift_requests(
+        start: date,
+        end: date,
         db: Session
 ) -> list[shift_schema.ShiftMember]:
-    start = date(year, month, 1)
-    end = date(year, month+1, 1) if month < 12 else date(year+1, 1, 1)
-
     stmt = (
         select(
             shift_model.ShiftRequest.shift_date,
+            user_model.User.id,
             user_model.User.name
         ).join(
             user_model.User,
             shift_model.ShiftRequest.user_id == user_model.User.id
         ).where(
             shift_model.ShiftRequest.shift_date >= start,
-            shift_model.ShiftRequest.shift_date < end
+            shift_model.ShiftRequest.shift_date <= end
         ).order_by(
-            shift_model.ShiftRequest.shift_date
+            shift_model.ShiftRequest.shift_date,
+            user_model.User.id
         )
     )
     db_shift_requests = db.execute(stmt).all()
 
-    # 日付ごとにユーザーをまとめる
-    members_by_date = defaultdict(list)
+    day_shift_members = defaultdict(list)
 
-    for shift_date, user_name in db_shift_requests:
-        members_by_date[shift_date].append(user_name)
-
+    for shift_date, user_id, user_name in db_shift_requests:
+        day_shift_members[shift_date].append(
+            shift_schema.ShiftMemberUser(
+                user_id = user_id,
+                user_name = user_name
+            )
+        )
+    
     return [
         shift_schema.ShiftMember(
             shift_date = shift_date,
             members = members
         )
-        for shift_date, members in members_by_date.items()
+        for shift_date, members in day_shift_members.items()
     ]
 
 # 日付ごとのシフト希望一覧取得
-def get_day_shift_requests(
+def get_day_shift_request(
         target_date: date,
         db: Session
 ) -> shift_schema.ShiftMember:
     stmt = (
         select(
+            user_model.User.id,
             user_model.User.name
         ).select_from(
             shift_model.ShiftRequest
@@ -121,11 +125,21 @@ def get_day_shift_requests(
             shift_model.ShiftRequest.user_id == user_model.User.id
         ).where(
             shift_model.ShiftRequest.shift_date == target_date
+        ).order_by(
+            user_model.User.id
         )
     )
-    db_members = db.execute(stmt).scalars().all()
+    db_shift_members = db.execute(stmt).all()
+
+    members = [
+        shift_schema.ShiftMemberUser(
+            user_id = user_id,
+            user_name = user_name
+        )
+        for user_id, user_name in db_shift_members
+    ]
 
     return shift_schema.ShiftMember(
         shift_date = target_date,
-        members = db_members
+        members = members
     )
