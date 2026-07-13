@@ -8,7 +8,11 @@ from fastapi import HTTPException
 from app.utils.auth import hash_password
 from app.db import get_db, Base, engine
 from app.models.user_model import User
-from app.routers import user_router, shift_router
+from app.routers import (
+    user_router,
+    period_router,
+    shift_router
+)
 
 Base.metadata.create_all(bind=engine)
 
@@ -52,4 +56,5 @@ def init(db: Session = Depends(get_db)) -> dict:
     return {"message": "管理者登録"}
 
 app.include_router(user_router.router)
+app.include_router(period_router.router)
 app.include_router(shift_router.router)
