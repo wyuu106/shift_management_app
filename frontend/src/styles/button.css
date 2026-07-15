@@ -1,0 +1,16 @@
+.button-base {
+  font-size: 18px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.button-primary {
+  background: #007bff;
+  color: white;
+}
+
+.button-danger {
+  background: #dc3545;
+  color: white;
+}

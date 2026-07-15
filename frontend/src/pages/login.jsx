@@ -5,22 +5,15 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../utils/api";
 import { getErrorMessage } from "../utils/error";
+import "../styles/form.css";
+import "../styles/button.css";
 
 function Login() {
   const navigate = useNavigate();
 
   const [users, setUsers] = useState([]);
-  const [selectedUsername, setSelectedUsername] = useState("");
+  const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
-
-  // ユーザー一覧取得
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const res = await axios.get(`${API_URL}/users`);
-      setUsers(res.data);
-    };
-    fetchUsers();
-  }, []);
 
   const handleLogin = async () => {
     try {
@@ -51,47 +44,38 @@ function Login() {
   };
 
   return (
-    <div>
-      <h1>ログイン</h1>
+    <div className="form-container">
+      <div className="form-card">
+        <h2>ログイン</h2>
 
-      {/* ユーザー選択 */}
-      <select
-        value={selectedUsername}
-        onChange={(e) => {
-          setSelectedUsername(e.target.value);
-          setPassword(""); // ユーザー変えたらリセット
-        }}
-      >
-        <option value="">ユーザーを選択</option>
-        {users.map((u) => (
-          <option key={u.id} value={u.name}>
-            {u.name}
-          </option>
-        ))}
-      </select>
+        <input
+          type="text"
+          placeholder="ユーザー名"
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
+        />
 
-      <br />
+        <input
+          type="password"
+          placeholder="パスワード"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-      {/* ユーザー選択でパスワード表示 */}
-      {selectedUsername && (
-        <>
-          <input
-            type="password"
-            placeholder="パスワード"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+        <button
+          className="button-base button-primary"
+          onClick={handleLogin}
+        >
+          ログイン
+        </button>
 
-          <button onClick={handleLogin}>ログイン</button>
-        </>
-      )}
-
-      <br />
-      <br />
-
-      <button onClick={() => navigate("/register")}>
-        ユーザー登録申請へ
-      </button>
+        <button
+          className="button-base"
+          onClick={() => navigate("/register")}
+        >
+          ユーザー登録へ
+        </button>
+      </div>
     </div>
   );
 }
