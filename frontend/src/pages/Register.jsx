@@ -36,7 +36,7 @@ function Register() {
         <input
           type="text"
           placeholder="ユーザー名"
-          value="{userName}"
+          value={userName}
           onChange={(e) => setUserName(e.target.value)}
         />
 
