@@ -14,6 +14,7 @@ function Register() {
   const [userName, setUserName] = useState();
   const [password, setPassword] = useState();
 
+  // 登録申請
   const handleRegister = async() => {
     try{
       await axios.post(`${API_URL}/register/request`, {
@@ -47,19 +48,21 @@ function Register() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <button
-          className="button-base button-primary"
-          onClick={handleRegister}
-        >
-          申請する
-        </button>
+        <div className="button-group">
+          <button
+            className="button-base button-primary"
+            onClick={handleRegister}
+          >
+            申請する
+          </button>
 
-        <button
-          className="button-base"
-          onClick={() => navigate("/")}
-        >
-          ログイン画面へ戻る
-        </button>
+          <button
+            className="button-base"
+            onClick={() => navigate("/")}
+          >
+            ログイン画面へ戻る
+          </button>
+        </div>
       </div>
     </div>
   );

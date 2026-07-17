@@ -15,10 +15,11 @@ function Login() {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
 
+  // ログイン
   const handleLogin = async () => {
     try {
       const formData = new URLSearchParams();
-      formData.append("username", selectedUsername);
+      formData.append("username", userName);
       formData.append("password", password);
 
       const res = await axios.post(
@@ -62,19 +63,21 @@ function Login() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <button
-          className="button-base button-primary"
-          onClick={handleLogin}
-        >
-          ログイン
-        </button>
+        <div className="button-group">
+          <button
+            className="button-base button-primary"
+            onClick={handleLogin}
+          >
+            ログイン
+          </button>
 
-        <button
-          className="button-base"
-          onClick={() => navigate("/register")}
-        >
-          ユーザー登録へ
-        </button>
+          <button
+            className="button-base"
+            onClick={() => navigate("/register")}
+          >
+            ユーザー登録へ
+          </button>
+        </div>
       </div>
     </div>
   );

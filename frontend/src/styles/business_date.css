@@ -1,0 +1,18 @@
+.business-date-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+  align-items: center;
+}
+
+.business-date-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.business-date-list input {
+  margin-right: 8px;
+}
