@@ -1,0 +1,42 @@
+.shift-container {
+  width: 90%;
+  margin: auto;
+}
+
+
+.shift-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-weight: bold;
+}
+
+
+.shift-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+
+.shift-cell {
+  border: 1px solid #ccc;
+  min-height: 120px;
+  padding: 10px;
+}
+
+
+.shift-date {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+
+.member {
+  margin-bottom: 5px;
+}
+
+
+.remark {
+  font-size: 14px;
+}

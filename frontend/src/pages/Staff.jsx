@@ -7,11 +7,11 @@ function Admin() {
   const navigate = useNavigate();
 
   return (
-    <div className="menu-base">
+    <div className="container">
       <h1>スタッフメニュー</h1>
 
       <div
-        className="container"
+        className="menu-base"
         onClick={() => navigate("/shift/request")}
       >
         シフト申請

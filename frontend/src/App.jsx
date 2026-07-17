@@ -3,9 +3,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 // 各ページのファイルをimport
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Shift from "./pages/Shift"
 import Admin from "./pages/Admin";
 import ShiftPeriod from "./pages/ShiftPeriod";
 import ShiftRegister from "./pages/ShiftRegister";
+import User from "./pages/User";
+import UserRequest from "./pages/UserRequest";
 
 import Staff from "./pages/Staff";
 import ShiftRequest from "./pages/ShiftRequest";
@@ -20,10 +23,16 @@ function App() {
           element={<Login />} // page関数
         />
 
-        {/* ユーザー登録 */}
+        {/* ユーザー登録申請 */}
         <Route
           path="/register"
           element={<Register />}
+        />
+
+        {/* シフト確認 */}
+        <Route
+          path="/shifts"
+          element={<Shift />}
         />
 
         {/* 管理者メニュー */}
@@ -42,6 +51,18 @@ function App() {
         <Route
           path="/shift/register"
           element={<ShiftRegister />}
+        />
+
+        {/* ユーザー管理 */}
+        <Route
+          path="/users"
+          element={<User />}
+        />
+
+        {/* ユーザー登録申請管理 */}
+        <Route
+          path="/user/requests"
+          element={<UserRequest />}
         />
 
         {/* スタッフメニュー */}

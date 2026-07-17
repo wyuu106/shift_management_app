@@ -1,10 +1,11 @@
 // シフト登録ページ
 
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../utils/api";
 import { getErrorMessage } from "../utils/error";
-
+import "../styles/button.css"
 
 function ShiftManagement() {
   const navigate = useNavigate();
@@ -148,8 +149,26 @@ function ShiftManagement() {
   };
 
   if(!period){
-    return <p>読み込み中...</p>;
+    return (
+      <div>
+        <p>シフト期間が登録されていません</p>
+        <button 
+          className="button-base"
+          onClick={() => navigate("/admin")}
+        >
+          戻る
+        </button>
+      </div>
+    )
   }
+
+  // キャンセル処理
+  const handleCancel = () => {
+    if (!window.confirm("入力内容を破棄しますか？")) {
+      return;
+    }
+    navigate("/admin");
+  };
 
   return (
     <div>
@@ -217,7 +236,7 @@ function ShiftManagement() {
             <div className="button-group">
               <button
                 className="button-base"
-                onClick={handleCnacel}
+                onClick={handleCancel}
               >
                 キャンセル
               </button>

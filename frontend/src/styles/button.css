@@ -17,7 +17,8 @@
 
 .button-group {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 12px;
   margin-top: 24px;
+  align-items: center;
 }

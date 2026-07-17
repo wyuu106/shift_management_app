@@ -39,7 +39,7 @@ function ShiftPeriod () {
         {
           name,
           start: format(start, "yyyy-MM-dd"),
-          end: format(start, "yyyy-MM-dd"),
+          end: format(end, "yyyy-MM-dd"),
           business_dates: businessDates.sort(),
         },
         {
@@ -50,6 +50,8 @@ function ShiftPeriod () {
       );
 
       alert("登録しました");
+      navigate("/admin")
+
     } catch (error) {
       console.error(error);
       alert(getErrorMessage(error));
