@@ -11,7 +11,7 @@ def create_shift_period(
         db: Session
 ) -> dict:
     try:
-        if not period.start <= period.end:
+        if not period.start < period.end:
             raise HTTPException(
                 status_code=400,
                 detail="期間が不正です"
@@ -54,6 +54,7 @@ def get_shift_period(
 ) -> period_schema.ShiftPeriodResponse:
     stmt = (
         select(
+            period_model.ShiftPeriod.id,
             period_model.ShiftPeriod.name,
             period_model.ShiftPeriod.start,
             period_model.ShiftPeriod.end,
@@ -78,6 +79,7 @@ def get_shift_period(
         )
     
     return period_schema.ShiftPeriodResponse(
+        id = rows[0].id,
         name = rows[0].name,
         start = rows[0].start,
         end = rows[0].end,

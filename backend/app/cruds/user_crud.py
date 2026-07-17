@@ -57,17 +57,26 @@ def approve_user_request(
     db_request = db.execute(stmt).scalar_one_or_none()
 
     if not db_request:
-        raise HTTPException(status_code=404, detail="該当する申請が見つかりませんでした")
+        raise HTTPException(
+            status_code=404,
+            detail="該当する申請が見つかりませんでした"
+        )
     
     if db_request.status != "pending":
-        raise HTTPException(status_code=400, detail="既に処理済みの申請です")
+        raise HTTPException(
+            status_code=400,
+            detail="既に処理済みの申請です"
+        )
 
     exist_user = db.execute(select(user_model.User).where(
         user_model.User.name == db_request.name
     )).scalar_one_or_none()
 
     if exist_user:
-        raise HTTPException(status_code=400, detail="このユーザー名は既に使われています")
+        raise HTTPException(
+            status_code=400,
+            detail="このユーザー名は既に使われています"
+        )
 
     new_user = user_model.User(
         name=db_request.name,
@@ -92,10 +101,16 @@ def reject_user_request(
     db_request = db.execute(stmt).scalar_one_or_none()
 
     if not db_request:
-        raise HTTPException(status_code=404, detail="該当する申請が見つかりませんでした")
+        raise HTTPException(
+            status_code=404,
+            detail="該当する申請が見つかりませんでした"
+        )
     
     if db_request.status != "pending":
-        raise HTTPException(status_code=400, detail="既に処理済みの申請です")
+        raise HTTPException(
+            status_code=400,
+            detail="既に処理済みの申請です"
+        )
 
     db_request.status = "rejected"
     db.commit()
@@ -103,12 +118,23 @@ def reject_user_request(
     return {"message": "申請を却下しました"}
 
 # ログイン
-def login(form_data: OAuth2PasswordRequestForm, db: Session) -> dict[str, str, str]:
-    stmt = select(user_model.User).where(user_model.User.name == form_data.username)
+def login(
+        form_data: OAuth2PasswordRequestForm,
+        db: Session
+) -> dict[str, str, str]:
+    stmt = select(user_model.User).where(
+        user_model.User.name == form_data.username
+    )
     db_user = db.execute(stmt).scalar_one_or_none()
 
-    if db_user is None or not verify_password(form_data.password, db_user.hashed_password):
-        raise HTTPException(status_code=400, detail="IDまたはパスワードが違います")
+    if db_user is None or not verify_password(
+        form_data.password,
+        db_user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="IDまたはパスワードが違います"
+        )
 
     access_token = create_access_token(
         data={"sub": str(db_user.id)}
@@ -126,11 +152,22 @@ def get_users(db: Session) -> list[user_schema.UserCreateResponse]:
 
 # ユーザー削除
 def delete_user(user_id: int, db: Session):
-    stmt = select(user_model.User).where(user_model.User.id == user_id)
+    stmt = select(user_model.User).where(
+        user_model.User.id == user_id
+    )
     db_user = db.execute(stmt).scalar_one_or_none()
 
     if not db_user:
-        raise HTTPException(status_code=404, detail="該当するユーザーが見つかりませんでした")
+        raise HTTPException(
+            status_code=404,
+            detail="該当するユーザーが見つかりませんでした"
+        )
+    
+    if db_user.role == "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="管理者ユーザーは削除できません"
+        )
 
     db.delete(db_user)
     db.commit()
