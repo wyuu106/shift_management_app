@@ -5,17 +5,17 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.db import get_db
 from app.utils.auth import get_current_user
 from app.models import user_model
-from app.schemas import date_schema
-from app.cruds import date_crud
+from app.schemas import period_schema
+from app.cruds import period_crud
 
 router = APIRouter()
 
 @router.put(
-    "/business_dates",
+    "/period",
     response_model = dict
 )
 def create_shift_period(
-        period: date_schema.BusinessDateCreate,
+        period: period_schema.ShiftPeriodCreate,
         db: Session = Depends(get_db),
         current_user: user_model.User = Depends(get_current_user)
 ):
@@ -25,14 +25,14 @@ def create_shift_period(
             detail="権限がありません"
         )
     
-    return date_crud.create_business_dates(period, db)
+    return period_crud.create_shift_period(period, db)
 
 @router.get(
-    "/business_dates",
-    response_model = date_schema.BusinessDateResponse
+    "/period",
+    response_model = period_schema.ShiftPeriodResponse
 )
 def get_shift_periods(
         db: Session = Depends(get_db),
         current_user: user_model.User = Depends(get_current_user)
 ):
-    return date_crud.get_business_dates(db)
+    return period_crud.get_shift_period(db)

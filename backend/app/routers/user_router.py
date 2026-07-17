@@ -13,10 +13,10 @@ router = APIRouter()
 # ユーザー登録申請作成
 @router.post(
     "/register/request",
-    response_model = user_schema.UserRequestCreate
+    response_model = user_schema.UserRequestResponse
 )
 def create_user_request(
-    user: user_model.User,
+    user: user_schema.UserRequestCreate,
     db: Session = Depends(get_db)
 ):
     return user_crud.create_user_request(user, db)
@@ -74,7 +74,7 @@ def login(
     return user_crud.login(form_data, db)
 
 # ユーザー一覧取得
-@router.get("/users", rsponse_model = list[user_schema.UserCreateResponse])
+@router.get("/users", response_model = list[user_schema.UserCreateResponse])
 def get_users(
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)

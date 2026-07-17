@@ -48,12 +48,11 @@ def create_shift_request(
         db: Session
 ) -> dict:
     try:
-        stmt = delete(shift_model.ShiftRequest).where(
+        db.execute(delete(shift_model.ShiftRequest).where(
             shift_model.ShiftRequest.user_id == current_user.id,
             shift_model.ShiftRequest.shift_date >= start,
             shift_model.ShiftRequest.shift_date <= end
-        )
-        db.execute(stmt)
+        ))
 
         for shift_request_date in shift_request_dates:
             db_shift_request = shift_model.ShiftRequest(
@@ -161,11 +160,10 @@ def create_shift(
         db: Session
 ) -> dict:
     try:
-        stmt = delete(shift_model.Shift).where(
+        db.execute(delete(shift_model.Shift).where(
             shift_model.Shift.shift_date >= start,
             shift_model.Shift.shift_date <= end
-        )
-        db.execute(stmt)
+        ))
 
         for shift in shifts:
             for member in shift.members:

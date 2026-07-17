@@ -32,7 +32,7 @@ app.add_middleware(
 )
 
 # 初期化（admin作成）API
-@app.post("/init", response_model=str)
+@app.post("/init", response_model = dict)
 def init(db: Session = Depends(get_db)) -> dict:
     exist_admin = db.execute(
         select(User).where(User.role == "admin")
