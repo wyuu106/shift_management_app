@@ -49,7 +49,7 @@ function App() {
 
         {/* シフト登録 */}
         <Route
-          path="/shift/register"
+          path="/admin/shift"
           element={<AdminShift />}
         />
 

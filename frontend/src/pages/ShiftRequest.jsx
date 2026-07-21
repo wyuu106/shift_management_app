@@ -95,10 +95,6 @@ function ShiftRequest() {
         `${API_URL}/shift/request`,
         requests,
         {
-          params: {
-            start: period.start,
-            end: period.end,
-          },
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -1,5 +1,7 @@
 // シフトカレンダーの表示コンポーネント
 
+import "../styles/shift.css"
+
 function ShiftCalendar({
   period,
   dates,
