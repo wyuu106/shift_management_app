@@ -1,3 +1,5 @@
+// シフトカレンダーの表示コンポーネント
+
 function ShiftCalendar({
   period,
   dates,
@@ -18,7 +20,9 @@ function ShiftCalendar({
           "土",
           "日",
         ].map(day => (
-          <div key={day}>{day}</div>
+          <div key={day}>
+            {day}
+          </div>
         ))}
       </div>
 
@@ -33,9 +37,6 @@ function ShiftCalendar({
               key={date}
               className="shift-cell"
               onClick={() => onCellClick?.(date)}
-              style={{
-                cursor: onCellClick ? "pointer" : "default",
-              }}
             >
               <div className="shift-date">
                 {date.slice(5)}

@@ -91,10 +91,14 @@ function ShiftRequest() {
     }
 
     try {
-      await axios.post(
-        `${API_URL}/user/shift/requests`,
+      await axios.put(
+        `${API_URL}/shift/request`,
         requests,
         {
+          params: {
+            start: period.start,
+            end: period.end,
+          },
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -102,6 +106,7 @@ function ShiftRequest() {
       );
 
       alert("登録しました");
+      navigate("/staff")
 
     } catch (error) {
       console.error(error);
@@ -115,15 +120,8 @@ function ShiftRequest() {
 
   // キャンセル処理
   const handleCancel = () => {
-    if (
-      name ||
-      start ||
-      end ||
-      businessDates.length > 0
-    ) {
-      if (!window.confirm("入力内容を破棄しますか？")) {
-        return;
-      }
+    if (!window.confirm("入力内容を破棄しますか？")) {
+      return;
     }
     navigate("/staff");
   };

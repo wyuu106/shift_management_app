@@ -60,7 +60,7 @@ function Register() {
             className="button-base"
             onClick={() => navigate("/")}
           >
-            ログイン画面へ戻る
+            ログイン画面へ
           </button>
         </div>
       </div>

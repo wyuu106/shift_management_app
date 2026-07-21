@@ -6,7 +6,7 @@ import Register from "./pages/Register";
 import Shift from "./pages/Shift"
 import Admin from "./pages/Admin";
 import ShiftPeriod from "./pages/ShiftPeriod";
-import ShiftRegister from "./pages/ShiftRegister";
+import AdminShift from "./pages/AdminShift";
 import User from "./pages/User";
 import UserRequest from "./pages/UserRequest";
 
@@ -50,7 +50,7 @@ function App() {
         {/* シフト登録 */}
         <Route
           path="/shift/register"
-          element={<ShiftRegister />}
+          element={<AdminShift />}
         />
 
         {/* ユーザー管理 */}
