@@ -89,18 +89,9 @@ def create_shift_request(
 
 # 指定範囲のシフト希望一覧取得
 def get_shift_requests(
+        period: period_model.ShiftPeriod,
         db: Session
 ) -> list[shift_schema.DayShiftResponse]:
-    period = db.execute(
-        select(period_model.ShiftPeriod)
-    ).scalar_one_or_none()
-
-    if not period:
-        raise HTTPException(
-            status_code=404,
-            detail="シフト登録可能な期間がありません"
-        )
-    
     stmt = (
         select(
             shift_model.ShiftRequest.shift_date,
@@ -139,73 +130,11 @@ def get_shift_requests(
         for shift_date, members in day_shift_members.items()
     ]
 
-# 日付ごとのシフト希望一覧取得
-def get_day_shift_requests(
-        target_date: date,
-        db: Session
-) -> shift_schema.DayShiftResponse:
-    stmt = (
-        select(
-            user_model.User.id,
-            user_model.User.name,
-            shift_model.ShiftRequest.remark
-        ).select_from(
-            shift_model.ShiftRequest
-        ).join(
-            user_model.User,
-            shift_model.ShiftRequest.user_id == user_model.User.id
-        ).where(
-            shift_model.ShiftRequest.shift_date == target_date
-        ).order_by(
-            user_model.User.id
-        )
-    )
-    db_shift_members = db.execute(stmt).all()
-
-    members = [
-        shift_schema.ShiftMemberResponse(
-            user_id = user_id,
-            user_name = user_name,
-            remark = remark
-        )
-        for user_id, user_name, remark in db_shift_members
-    ]
-
-    return shift_schema.DayShiftResponse(
-        shift_date = target_date,
-        members = members
-    )
-
-# 日付ごとのシフト作成
+# シフト登録
 def create_day_shift(
-        target_date: date,
-        shift: shift_schema.DayShiftCreate,
+        shifts: list[shift_schema.DayShiftCreate],
         db: Session
 ) -> dict:
-    try:
-        db.execute(delete(shift_model.Shift).where(
-            shift_model.Shift.shift_date == target_date
-        ))
-
-        for member in shift.members:
-            db_shift = shift_model.Shift(
-                shift_date = target_date,
-                remark = member.remark,
-                user_id = member.user_id
-            )
-
-            db.add(db_shift)
-        
-        db.commit()
-
-        return {"message": "シフト登録"}
-    
-    except Exception:
-        db.rollback()
-        raise
-
-# 範囲内のシフト登録
-def create_shifts(db: Session) -> dict:
     period = db.execute(
         select(period_model.ShiftPeriod)
     ).scalar_one_or_none()
@@ -217,96 +146,34 @@ def create_shifts(db: Session) -> dict:
         )
     
     try:
-        for business_date in period.business_dates:
-            shift_date = business_date.business_date
+        db.execute(delete(shift_model.Shift).where(
+            shift_model.Shift.shift_date >= period.start,
+            shift_model.Shift.shift_date <= period.end
+        ))
 
-            exists = db.execute(
-                select(shift_model.Shift)
-                .where(
-                    shift_model.Shift.shift_date == shift_date
-                )
-            ).scalar_one_or_none()
-
-            if exists:
-                continue
-
-            db_requests = db.execute(
-                select(shift_model.ShiftRequest)
-                .where(
-                    shift_model.ShiftRequest.shift_date == shift_date
-                )
-            ).scalars().all()
-
-            for request in db_requests:
+        for shift in shifts:
+            for member in shift.members:
                 db_shift = shift_model.Shift(
-                    shift_date=request.shift_date,
-                    remark=request.remark,
-                    user_id=request.user_id
+                    shift_date = shift.shift_date,
+                    remark = member.remark,
+                    user_id = member.user_id
                 )
 
                 db.add(db_shift)
 
-        period.is_published = True
-
         db.commit()
 
-        return {"message": "シフトを登録しました"}
-
+        return {"message": "シフト登録完了"}
+    
     except Exception:
         db.rollback()
         raise
 
-# 日付ごとのシフト取得
-def get_day_shift(
-        target_date: date,
-        db: Session
-) -> shift_schema.DayShiftResponse:
-    stmt = (
-        select(
-            user_model.User.id,
-            user_model.User.name,
-            shift_model.Shift.remrk
-        ).select_from(
-            shift_model.Shift
-        ).where(
-            user_model.User,
-            shift_model.Shift.user_id == user_model.User.id
-        ).where(
-            shift_model.Shift.shift_date == target_date
-        ).order_by(
-            user_model.User.id
-        )
-    )
-    db_shift_members = db.execute(stmt).all()
-
-    members = [
-        shift_schema.ShiftMemberResponse(
-            user_id = user_id,
-            user_name = user_name,
-            remark = remark
-        )
-        for user_id, user_name, remark in db_shift_members
-    ]
-
-    return shift_schema.DayShiftResponse(
-        shift_date = target_date,
-        members = members
-    )
-
 # 指定範囲のシフト一覧取得
 def get_shifts(
+        period: period_model.ShiftPeriod,
         db: Session
 ) -> list[shift_schema.DayShiftResponse]:
-    period = db.execute(
-        select(period_model.ShiftPeriod)
-    ).scalar_one_or_none()
-
-    if not period:
-        raise HTTPException(
-            status_code=404,
-            detail="シフト登録可能な期間がありません"
-        )
-    
     stmt = (
         select(
             shift_model.Shift.shift_date,

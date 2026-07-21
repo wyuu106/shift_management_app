@@ -15,6 +15,7 @@ class ShiftMemberCreate(BaseModel):
     remark: str | None = None
 
 class DayShiftCreate(BaseModel):
+    shift_date: date
     members: list[ShiftMemberCreate]
 
 class ShiftMemberResponse(BaseModel):

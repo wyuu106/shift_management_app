@@ -10,7 +10,6 @@ class ShiftPeriod(Base):
     name: Mapped[str] = mapped_column(String, nullable=True)
     start: Mapped[date] = mapped_column(Date)
     end: Mapped[date] = mapped_column(Date)
-    is_published: Mapped[bool] = mapped_column(Boolean)
 
     business_dates = relationship(
         "BusinessDate",
