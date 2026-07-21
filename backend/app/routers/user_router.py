@@ -24,7 +24,7 @@ def create_user_request(
 # ユーザー登録申請一覧取得
 @router.get(
     "/requests",
-    response_model=list[user_schema.UserCreateResponse]
+    response_model=list[user_schema.UserRequestResponse]
 )
 def get_user_requests(
     db: Session = Depends(get_db),

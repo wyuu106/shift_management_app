@@ -10,11 +10,18 @@ class ShiftRequestResponse(BaseModel):
     user_name: str
     shift_dates: list[ShiftRequestCreate]
 
-class ShiftMember(BaseModel):
+class ShiftMemberCreate(BaseModel):
+    user_id: int
+    remark: str | None = None
+
+class DayShiftCreate(BaseModel):
+    members: list[ShiftMemberCreate]
+
+class ShiftMemberResponse(BaseModel):
     user_id: int
     user_name: str
     remark: str | None = None
 
-class DayShiftData(BaseModel):
+class DayShiftResponse(BaseModel):
     shift_date: date
-    members: list[ShiftMember]
+    members: list[ShiftMemberResponse]
