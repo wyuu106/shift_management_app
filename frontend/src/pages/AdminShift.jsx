@@ -8,6 +8,7 @@ import axios from "axios";
 import { API_URL } from "../utils/api";
 import { getErrorMessage } from "../utils/error";
 import { useShift } from "../contexts/ShiftContext";
+
 import ShiftCalendar from "../components/ShiftCalendar";
 
 import "../styles/button.css";
@@ -15,13 +16,9 @@ import "../styles/button.css";
 function AdminShift() {
   const navigate = useNavigate();
 
-  const {
-    period,
-    setPeriod,
-    shifts,
-    setShifts,
-  } = useShift();
+  const { shifts, setShifts } = useShift();
 
+  const [period, setPeriod] = useState(null);
   const [dates, setDates] = useState([]);
 
   const token = localStorage.getItem("token");
@@ -43,9 +40,9 @@ function AdminShift() {
       );
 
       const currentPeriod = periodRes.data;
+
       setPeriod(currentPeriod);
 
-      // カレンダーの日付生成
       setDates(
         eachDayOfInterval({
           start: new Date(currentPeriod.start),
@@ -53,17 +50,19 @@ function AdminShift() {
         }).map(date => format(date, "yyyy-MM-dd"))
       );
 
-      // 登録済みシフト取得
-      const shiftRes = await axios.get(
-        `${API_URL}/shifts`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // Contextが空なら取得
+      if (shifts.length === 0) {
+        const shiftRes = await axios.get(
+          `${API_URL}/shifts`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      setShifts(shiftRes.data);
+        setShifts(shiftRes.data);
+      }
 
     } catch (error) {
       console.error(error);
@@ -71,8 +70,12 @@ function AdminShift() {
     }
   };
 
-  // 希望を取得
+  // 希望取得
   const handleLoadRequests = async () => {
+    if (!window.confirm("シフト希望を反映させますか？")) {
+      return;
+    }
+
     try {
       const res = await axios.get(
         `${API_URL}/shift/requests`,
@@ -121,18 +124,7 @@ function AdminShift() {
   };
 
   if (!period) {
-    return (
-      <div>
-        <p>シフト期間が登録されていません</p>
-
-        <button
-          className="button-base"
-          onClick={() => navigate("/admin")}
-        >
-          戻る
-        </button>
-      </div>
-    );
+    return <p>読み込み中...</p>;
   }
 
   return (

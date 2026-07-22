@@ -19,16 +19,9 @@ function Admin() {
 
       <div
         className="menu-base"
-        onClick={() => navigate("/shift/register")}
+        onClick={() => navigate("/admin/shift")}
       >
         シフト登録
-      </div>
-
-      <div
-        className="menu-base"
-        onClick={() => navigate("/shifts")}
-      >
-        シフト確認
       </div>
 
       <div

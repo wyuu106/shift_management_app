@@ -1,66 +1,100 @@
-function ShiftCalendar({
-  period,
-  dates,
-  shifts,
-  onCellClick,
-}) {
+// スタッフ用シフト画面
+
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { eachDayOfInterval, format } from "date-fns";
+import axios from "axios";
+
+import { API_URL } from "../utils/api";
+import { getErrorMessage } from "../utils/error";
+
+import ShiftCalendar from "../components/ShiftCalendar";
+
+import "../styles/button.css";
+
+function Shift() {
+  const navigate = useNavigate();
+
+  const [period, setPeriod] = useState(null);
+  const [dates, setDates] = useState([]);
+  const [shifts, setShifts] = useState([]);
+
+  const token = localStorage.getItem("token");
+
+
+  useEffect(() => {
+    init();
+  }, []);
+
+
+  const init = async () => {
+    try {
+      // 期間取得
+      const periodRes = await axios.get(
+        `${API_URL}/period`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const currentPeriod = periodRes.data;
+
+      setPeriod(currentPeriod);
+
+
+      setDates(
+        eachDayOfInterval({
+          start: new Date(currentPeriod.start),
+          end: new Date(currentPeriod.end),
+        }).map(date =>
+          format(date, "yyyy-MM-dd")
+        )
+      );
+
+
+      // 確定シフト取得
+      const shiftRes = await axios.get(
+        `${API_URL}/shifts`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setShifts(shiftRes.data);
+
+
+    } catch (error) {
+      console.error(error);
+      alert(getErrorMessage(error));
+    }
+  };
+
+
+  if (!period) {
+    return <p>読み込み中...</p>;
+  }
+
+
   return (
-    <>
-      <h2>{period.name}</h2>
+    <div>
+      <ShiftCalendar
+        period={period}
+        dates={dates}
+        shifts={shifts}
+      />
 
-      <div className="shift-header">
-        {[
-          "月",
-          "火",
-          "水",
-          "木",
-          "金",
-          "土",
-          "日",
-        ].map(day => (
-          <div key={day}>{day}</div>
-        ))}
-      </div>
-
-      <div className="shift-grid">
-        {dates.map(date => {
-          const shift = shifts.find(
-            s => s.shift_date === date
-          );
-
-          return (
-            <div
-              key={date}
-              className="shift-cell"
-              onClick={() => onCellClick?.(date)}
-              style={{
-                cursor: onCellClick ? "pointer" : "default",
-              }}
-            >
-              <div className="shift-date">
-                {date.slice(5)}
-              </div>
-
-              {shift?.members.map(member => (
-                <div
-                  className="member"
-                  key={member.user_id}
-                >
-                  <div>{member.user_name}</div>
-
-                  {member.remark && (
-                    <div className="remark">
-                      （{member.remark}）
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          );
-        })}
-      </div>
-    </>
+      <button
+        className="button-base"
+        onClick={() => navigate("/staff")}
+      >
+        戻る
+      </button>
+    </div>
   );
 }
 
-export default ShiftCalendar;
+export default Shift;

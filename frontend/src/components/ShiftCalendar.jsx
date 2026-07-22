@@ -1,6 +1,6 @@
 // シフトカレンダーの表示コンポーネント
 
-import "../styles/shift.css"
+import "../styles/shift.css";
 
 function ShiftCalendar({
   period,
@@ -34,30 +34,50 @@ function ShiftCalendar({
             s => s.shift_date === date
           );
 
+          const isBusinessDay =
+            period.business_dates.includes(date);
+
           return (
             <div
               key={date}
-              className="shift-cell"
-              onClick={() => onCellClick?.(date)}
+              className={`shift-cell ${
+                !isBusinessDay ? "holiday" : ""
+              }`}
+              onClick={() => {
+                if (isBusinessDay) {
+                  onCellClick?.(date);
+                }
+              }}
+              style={{
+                cursor: isBusinessDay
+                  ? "pointer"
+                  : "default",
+              }}
             >
               <div className="shift-date">
                 {date.slice(5)}
               </div>
 
-              {shift?.members.map(member => (
-                <div
-                  className="member"
-                  key={member.user_id}
-                >
-                  <div>{member.user_name}</div>
-
-                  {member.remark && (
-                    <div className="remark">
-                      （{member.remark}）
-                    </div>
-                  )}
+              {!isBusinessDay ? (
+                <div className="remark">
+                  休
                 </div>
-              ))}
+              ) : (
+                shift?.members.map(member => (
+                  <div
+                    className="member"
+                    key={member.user_id}
+                  >
+                    <div>{member.user_name}</div>
+
+                    {member.remark && (
+                      <div className="remark">
+                        （{member.remark}）
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           );
         })}

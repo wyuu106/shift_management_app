@@ -3,15 +3,20 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 // 各ページのファイルをimport
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Shift from "./pages/Shift"
+
 import Admin from "./pages/Admin";
 import ShiftPeriod from "./pages/ShiftPeriod";
+
+import { ShiftProvider } from "./contexts/ShiftContext";
 import AdminShift from "./pages/AdminShift";
+import AdminShiftEdit from "./pages/AdminShiftEdit"
+
 import User from "./pages/User";
 import UserRequest from "./pages/UserRequest";
 
 import Staff from "./pages/Staff";
 import ShiftRequest from "./pages/ShiftRequest";
+import Shift from "./pages/Shift"
 
 function App() {
   return (
@@ -29,12 +34,6 @@ function App() {
           element={<Register />}
         />
 
-        {/* シフト確認 */}
-        <Route
-          path="/shifts"
-          element={<Shift />}
-        />
-
         {/* 管理者メニュー */}
         <Route
           path="/admin"
@@ -47,11 +46,18 @@ function App() {
           element={<ShiftPeriod />}
         />
 
-        {/* シフト登録 */}
-        <Route
-          path="/admin/shift"
-          element={<AdminShift />}
-        />
+        {/* シフト関連 */}
+        <Route element={<ShiftProvider />}>
+          <Route
+            path="/admin/shift"
+            element={<AdminShift />}
+          />
+
+          <Route
+            path="/admin/shift/:target_date"
+            element={<AdminShiftEdit />}
+          />
+        </Route>
 
         {/* ユーザー管理 */}
         <Route
@@ -77,7 +83,12 @@ function App() {
           element={<ShiftRequest />}
         />
 
-        
+        {/* シフト確認 */}
+        <Route
+          path="/shifts"
+          element={<Shift />}
+        />
+
       </Routes>
     </BrowserRouter>
   );

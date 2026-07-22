@@ -16,6 +16,13 @@ function Admin() {
       >
         シフト申請
       </div>
+
+      <div
+        className="menu-base"
+        onClick={() => navigate("/shifts")}
+      >
+        シフト確認
+      </div>
     
     </div>
   );

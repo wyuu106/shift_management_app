@@ -1,25 +1,32 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
 } from "react";
 
+import { Outlet } from "react-router-dom";
+
 const ShiftContext = createContext(null);
 
-export function ShiftProvider({ children }) {
-  const [period, setPeriod] = useState(null);
+export function ShiftProvider() {
+  useEffect(() => {
+    console.log("ShiftProvider mounted");
+
+    return () => {
+      console.log("ShiftProvider unmounted");
+    };
+  }, []);
   const [shifts, setShifts] = useState([]);
 
   return (
     <ShiftContext.Provider
       value={{
-        period,
-        setPeriod,
         shifts,
         setShifts,
       }}
     >
-      {children}
+      <Outlet />
     </ShiftContext.Provider>
   );
 }

@@ -78,6 +78,19 @@ function AdminShiftEdit() {
     }
   };
 
+  const handleRemarkChange = (userId, remark) => {
+    setMembers(
+      members.map(member =>
+        member.user_id === userId
+          ? {
+              ...member,
+              remark,
+            }
+          : member
+      )
+    );
+  };
+
   const handleSave = () => {
     setShifts(
       shifts.map(day =>
@@ -97,21 +110,39 @@ function AdminShiftEdit() {
     <div>
       <h2>{target_date}</h2>
 
-      {users.map(user => (
-        <div key={user.id}>
-          <label>
-            <input
-              type="checkbox"
-              checked={members.some(
-                member => member.user_id === user.id
-              )}
-              onChange={() => handleCheck(user)}
-            />
+      {users.map(user => {
+        const member = members.find(
+          m => m.user_id === user.id
+        );
 
-            {user.name}
-          </label>
-        </div>
-      ))}
+        return (
+          <div key={user.id}>
+            <label>
+              <input
+                type="checkbox"
+                checked={!!member}
+                onChange={() => handleCheck(user)}
+              />
+
+              {user.name}
+            </label>
+
+            {member && (
+              <input
+                type="text"
+                placeholder="備考"
+                value={member.remark}
+                onChange={(e) =>
+                  handleRemarkChange(
+                    user.id,
+                    e.target.value
+                  )
+                }
+              />
+            )}
+          </div>
+        );
+      })}
 
       <div className="button-group">
         <button

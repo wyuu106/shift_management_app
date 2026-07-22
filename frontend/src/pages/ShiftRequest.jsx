@@ -16,13 +16,13 @@ function ShiftRequest() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    getPeriod();
+    init();
   }, []);
 
-  // シフト期間取得
-  const getPeriod = async () => {
+  const init = async () => {
     try {
-      const res = await axios.get(
+      // 期間取得
+      const periodRes = await axios.get(
         `${API_URL}/period`,
         {
           headers: {
@@ -31,14 +31,37 @@ function ShiftRequest() {
         }
       );
 
-      setPeriod(res.data);
+      const periodData = periodRes.data;
 
+      setPeriod(periodData);
+
+
+      // 自分の提出済み希望取得
+      const requestRes = await axios.get(
+        `${API_URL}/user/shift/requests`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const requests = requestRes.data.shift_dates;
+
+
+      // 日付一覧作成
       setBusinessDates(
-        res.data.business_dates.map((date) => ({
-          date,
-          selected: false,
-          remark: "",
-        }))
+        periodData.business_dates.map(date => {
+          const request = requests.find(
+            req => req.shift_date === date
+          );
+
+          return {
+            date,
+            selected: !!request,
+            remark: request?.remark ?? "",
+          };
+        })
       );
 
     } catch (error) {
