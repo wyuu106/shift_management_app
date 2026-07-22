@@ -3,6 +3,7 @@ from sqlalchemy import select, delete
 from fastapi import Response, HTTPException, status
 from datetime import date
 from collections import defaultdict
+from app.utils.period_util import get_period
 from app.models import shift_model, user_model, period_model
 from app.schemas import shift_schema
 
@@ -11,15 +12,7 @@ def get_user_shift_requests(
         current_user: user_model.User,
         db: Session
 ) -> shift_schema.ShiftRequestResponse:
-    period = db.execute(
-        select(period_model.ShiftPeriod)
-    ).scalar_one_or_none()
-
-    if not period:
-        raise HTTPException(
-            status_code=404,
-            detail="シフト登録可能な期間がありません"
-        )
+    period = get_period(db)
 
     stmt = (
         select(
@@ -29,6 +22,8 @@ def get_user_shift_requests(
             shift_model.ShiftRequest.user_id == current_user.id,
             shift_model.ShiftRequest.shift_date >= period.start,
             shift_model.ShiftRequest.shift_date <= period.end
+        ).order_by(
+            shift_model.ShiftRequest.shift_date
         )
     )
     db_shift_requests = db.execute(stmt).all()
@@ -53,15 +48,7 @@ def create_shift_request(
         current_user: user_model.User,
         db: Session
 ) -> dict:
-    period = db.execute(
-        select(period_model.ShiftPeriod)
-    ).scalar_one_or_none()
-
-    if not period:
-        raise HTTPException(
-            status_code=404,
-            detail="シフト登録可能な期間がありません"
-        )
+    period = get_period(db)
     
     try:
         db.execute(delete(shift_model.ShiftRequest).where(
@@ -89,9 +76,10 @@ def create_shift_request(
 
 # 指定範囲のシフト希望一覧取得
 def get_shift_requests(
-        period: period_model.ShiftPeriod,
         db: Session
 ) -> list[shift_schema.DayShiftResponse]:
+    period = get_period(db)
+    
     stmt = (
         select(
             shift_model.ShiftRequest.shift_date,
@@ -121,29 +109,30 @@ def get_shift_requests(
                 remark = remark
             )
         )
-    
-    return [
-        shift_schema.DayShiftResponse(
-            shift_date = shift_date,
-            members = members
-        )
-        for shift_date, members in day_shift_members.items()
+
+    res = []
+
+    business_dates = [
+        d.business_date
+        for d in period.business_dates
     ]
+
+    for shift_date in business_dates:
+        res.append(
+            shift_schema.DayShiftResponse(
+                shift_date = shift_date,
+                members = day_shift_members[shift_date]
+            )
+        )
+    
+    return res
 
 # シフト登録
 def create_day_shift(
         shifts: list[shift_schema.DayShiftCreate],
         db: Session
 ) -> dict:
-    period = db.execute(
-        select(period_model.ShiftPeriod)
-    ).scalar_one_or_none()
-
-    if not period:
-        raise HTTPException(
-            status_code=404,
-            detail="シフト登録可能な期間がありません"
-        )
+    period = get_period(db)
     
     try:
         db.execute(delete(shift_model.Shift).where(
@@ -171,9 +160,10 @@ def create_day_shift(
 
 # 指定範囲のシフト一覧取得
 def get_shifts(
-        period: period_model.ShiftPeriod,
         db: Session
 ) -> list[shift_schema.DayShiftResponse]:
+    period = get_period(db)
+    
     stmt = (
         select(
             shift_model.Shift.shift_date,
@@ -204,10 +194,19 @@ def get_shifts(
             )
         )
 
-    return [
-        shift_schema.DayShiftResponse(
-            shift_date = shift_date,
-            members = members
-        )
-        for shift_date, members in day_shift_members.items()
+    res = []
+
+    business_dates = [
+        d.business_date
+        for d in period.business_dates
     ]
+
+    for shift_date in business_dates:
+        res.append(
+            shift_schema.DayShiftResponse(
+                shift_date = shift_date,
+                members = day_shift_members[shift_date]
+            )
+        )
+
+    return res
