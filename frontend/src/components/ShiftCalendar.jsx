@@ -1,4 +1,5 @@
-// シフトカレンダーの表示コンポーネント
+import { format, parseISO } from "date-fns";
+import { ja } from "date-fns/locale";
 
 import "../styles/shift.css";
 
@@ -12,23 +13,7 @@ function ShiftCalendar({
     <>
       <h2>{period.name}</h2>
 
-      <div className="shift-header">
-        {[
-          "月",
-          "火",
-          "水",
-          "木",
-          "金",
-          "土",
-          "日",
-        ].map(day => (
-          <div key={day}>
-            {day}
-          </div>
-        ))}
-      </div>
-
-      <div className="shift-grid">
+      <div className="shift-list">
         {dates.map(date => {
           const shift = shifts.find(
             s => s.shift_date === date
@@ -37,10 +22,12 @@ function ShiftCalendar({
           const isBusinessDay =
             period.business_dates.includes(date);
 
+          const displayDate = parseISO(date);
+
           return (
             <div
               key={date}
-              className={`shift-cell ${
+              className={`shift-card ${
                 !isBusinessDay ? "holiday" : ""
               }`}
               onClick={() => {
@@ -48,18 +35,19 @@ function ShiftCalendar({
                   onCellClick?.(date);
                 }
               }}
-              style={{
-                cursor: isBusinessDay
-                  ? "pointer"
-                  : "default",
-              }}
             >
               <div className="shift-date">
-                {date.slice(5)}
+                {format(
+                  displayDate,
+                  "M月d日(E)",
+                  {
+                    locale: ja,
+                  }
+                )}
               </div>
 
               {!isBusinessDay ? (
-                <div className="remark">
+                <div className="holiday-text">
                   休
                 </div>
               ) : (
@@ -68,7 +56,9 @@ function ShiftCalendar({
                     className="member"
                     key={member.user_id}
                   >
-                    <div>{member.user_name}</div>
+                    <div>
+                      {member.user_name}
+                    </div>
 
                     {member.remark && (
                       <div className="remark">

@@ -33,6 +33,7 @@ function Register() {
   return (
     <div className="form-container">
       <div className="form-card">
+        <h2>新規ユーザー登録</h2>
 
         <input
           type="text"
