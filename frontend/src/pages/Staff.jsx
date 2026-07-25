@@ -23,6 +23,13 @@ function Admin() {
       >
         シフト確認
       </div>
+
+      <div
+        className="menu-base"
+        onClick={() => navigate("/user/shifts")}
+      >
+        自分のシフト確認
+      </div>
     
     </div>
   );

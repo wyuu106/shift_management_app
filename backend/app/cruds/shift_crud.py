@@ -112,12 +112,12 @@ def get_shift_requests(
 
     res = []
 
-    business_dates = [
+    shift_dates = [
         d.business_date
         for d in period.business_dates
     ]
 
-    for shift_date in business_dates:
+    for shift_date in shift_dates:
         res.append(
             shift_schema.DayShiftResponse(
                 shift_date = shift_date,
@@ -196,12 +196,12 @@ def get_shifts(
 
     res = []
 
-    business_dates = [
+    shift_dates = [
         d.business_date
         for d in period.business_dates
     ]
 
-    for shift_date in business_dates:
+    for shift_date in shift_dates:
         res.append(
             shift_schema.DayShiftResponse(
                 shift_date = shift_date,
@@ -210,3 +210,36 @@ def get_shifts(
         )
 
     return res
+
+# ユーザーごとのシフト確認
+def get_user_shifts(
+        current_user: user_model.User,
+        db: Session
+) -> shift_schema.UserShiftResponse:
+    period = get_period(db)
+
+    stmt = select(
+        shift_model.Shift.shift_date,
+        shift_model.Shift.remark
+    ).where(
+        shift_model.Shift.user_id == current_user.id,
+        shift_model.Shift.shift_date >= period.start,
+        shift_model.Shift.shift_date <= period.end
+    ).order_by(
+        shift_model.Shift.shift_date
+    )
+    db_shifts = db.execute(stmt).all()
+
+    shift_dates = [
+        shift_schema.ShiftDate(
+            shift_date = shift_date,
+            remark = remark
+        )
+        for shift_date, remark in db_shifts
+    ]
+
+    return shift_schema.UserShiftResponse(
+        user_id = current_user.id,
+        user_name = current_user.name,
+        shift_dates = shift_dates
+    )

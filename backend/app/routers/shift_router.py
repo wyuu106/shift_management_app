@@ -73,3 +73,14 @@ def get_shifts(
     current_user: user_model.User = Depends(get_current_user)
 ):
     return shift_crud.get_shifts(db)
+
+# ユーザーごとのシフト確認
+@router.get(
+    "/user/shifts",
+    response_model = shift_schema.UserShiftResponse
+)
+def get_user_shifts(
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return shift_crud.get_user_shifts(current_user, db)

@@ -17,6 +17,7 @@ import UserRequest from "./pages/UserRequest";
 import Staff from "./pages/Staff";
 import ShiftRequest from "./pages/ShiftRequest";
 import Shift from "./pages/Shift"
+import UserShift from "./pages/UserShift"
 
 function App() {
   return (
@@ -87,6 +88,12 @@ function App() {
         <Route
           path="/shifts"
           element={<Shift />}
+        />
+
+        {/* ユーザーごとのシフト確認 */}
+        <Route
+          path="/user/shifts"
+          element={<UserShift />}
         />
 
       </Routes>
