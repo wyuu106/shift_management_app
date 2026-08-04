@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from fastapi import Response, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from app.utils.auth import hash_password, verify_password, create_access_token
@@ -10,26 +10,48 @@ from app.schemas import user_schema
 def create_user_request(
         user: user_schema.UserRequestCreate,
         db: Session
-) -> user_schema.UserRequestResponse:
-    exist_user = db.execute(select(user_model.User).where(
-        user_model.User.name == user.name
-    )).scalar_one_or_none()
+) -> dict:
+    exist_user = db.execute(
+        select(
+            user_model.User
+        ).where(
+            or_(
+                user_model.User.id == user.id,
+                user_model.User.name == user.name
+            )
+        )).scalar_one_or_none()
 
     if exist_user:
-        raise HTTPException(status_code=400, detail="このユーザー名は既に使われています")
+        raise HTTPException(
+            status_code=400,
+            detail="このIDあるいはユーザー名は既に使われています"
+        )
     
-    exist_request = db.execute(select(user_model.UserRequest).where(
-        user_model.UserRequest.name == user.name,
-        user_model.UserRequest.status == "pending"
-    )).scalar_one_or_none()
+    exist_request = db.execute(
+        select(
+            user_model.UserRequest
+        ).where(
+            or_(
+                user_model.UserRequest.user_id == user.id,
+                user_model.UserRequest.name == user.name
+            ),
+            user_model.UserRequest.status == "pending"
+        )).scalar_one_or_none()
 
     if exist_request:
-        raise HTTPException(status_code=400, detail="このユーザー名は申請中です")
+        raise HTTPException(
+            status_code=400,
+            detail="このIDあるいはユーザー名は申請中です"
+        )
     
     if not (user.name.strip() and user.password.strip()):
-        raise HTTPException(status_code=400, detail="名前かパスワードが不正です")
+        raise HTTPException(
+            status_code=400,
+            detail="名前かパスワードが不正です"
+        )
 
     db_request = user_model.UserRequest(
+        user_id = user.id,
         name = user.name,
         hashed_password = hash_password(user.password)
     )
@@ -38,13 +60,18 @@ def create_user_request(
     db.commit()
     db.refresh(db_request)
 
-    return db_request
+    return {"message": "申請完了"}
 
 # ユーザー登録申請一覧取得
-def get_user_requests(db: Session) -> list[user_schema.UserRequestResponse]:
-    return db.execute(select(user_model.UserRequest).where(
-        user_model.UserRequest.status == "pending"
-    )).scalars().all()
+def get_user_requests(
+        db: Session
+    ) -> list[user_schema.UserRequestResponse]:
+    return db.execute(
+        select(
+            user_model.UserRequest
+        ).where(
+            user_model.UserRequest.status == "pending"
+        )).scalars().all()
 
 # ユーザー登録許可
 def approve_user_request(
@@ -68,19 +95,26 @@ def approve_user_request(
             detail="既に処理済みの申請です"
         )
 
-    exist_user = db.execute(select(user_model.User).where(
-        user_model.User.name == db_request.name
-    )).scalar_one_or_none()
+    exist_user = db.execute(
+        select(
+            user_model.User
+        ).where(
+            or_(
+                user_model.User.id == db_request.user_id,
+                user_model.User.name == db_request.name
+            )
+        )).scalar_one_or_none()
 
     if exist_user:
         raise HTTPException(
             status_code=400,
-            detail="このユーザー名は既に使われています"
+            detail="このIDあるいはユーザー名は既に使われています"
         )
 
     new_user = user_model.User(
-        name=db_request.name,
-        hashed_password=db_request.hashed_password
+        id = db_request.user_id,
+        name = db_request.name,
+        hashed_password = db_request.hashed_password
     )
 
     db.add(new_user)
@@ -123,7 +157,7 @@ def login(
         db: Session
 ) -> dict[str, str, str]:
     stmt = select(user_model.User).where(
-        user_model.User.name == form_data.username
+        user_model.User.id == form_data.username
     )
     db_user = db.execute(stmt).scalar_one_or_none()
 
@@ -147,8 +181,12 @@ def login(
     }
 
 # ユーザー一覧取得
-def get_users(db: Session) -> list[user_schema.UserCreateResponse]:
-    return db.execute(select(user_model.User)).scalars().all()
+def get_users(
+        db: Session
+    ) -> list[user_schema.UserCreateResponse]:
+    return db.execute(
+        select(user_model.User)
+    ).scalars().all()
 
 # ユーザー削除
 def delete_user(user_id: int, db: Session):

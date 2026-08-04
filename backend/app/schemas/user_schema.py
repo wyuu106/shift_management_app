@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
 class UserRequestCreate(BaseModel):
+    id: str
     name: str
     password: str
 
