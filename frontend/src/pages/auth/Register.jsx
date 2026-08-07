@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
-
-import { API_URL } from "../../utils/api";
+import { api } from "../../utils/api";
 import { getErrorMessage } from "../../utils/error";
 
 import "./auth.css";
@@ -18,6 +16,7 @@ function Register() {
   });
 
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -28,6 +27,7 @@ function Register() {
 
   const handleRegister = async (event) => {
     event.preventDefault();
+    setErrorMessage("");
 
     if (
       !formData.id.trim() ||
@@ -45,41 +45,44 @@ function Register() {
     }
 
     try {
-      await axios.post(
-        `${API_URL}/register`, {
-          id: formData.id.trim(),
-          username: formData.username.trim(),
-          password: formData.password,
+      setIsSubmitting(true);
+      await api.post("/register/request", {
+        id: formData.id.trim(),
+        name: formData.username.trim(),
+        password: formData.password,
       });
 
-      alert("登録が完了しました");
-      navigate("/login");
-
+      navigate("/login", {
+        state: {
+          message: "申請を送信しました。管理者の承認後にログインできます。",
+        },
+      });
     } catch (error) {
-      console.error(error);
-      alert(getErrorMessage(error));
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="auth-page">
+      <div className="auth-brand">
+        <img src="/logo.png" alt="" />
+      </div>
+
       <div className="auth-container">
+        <h2 className="auth-title">新規登録</h2>
 
-        <h2 className="auth-title">
-          新規ユーザー登録
-        </h2>
+        <br />
 
-        <form
-          className="auth-form"
-          onSubmit={handleRegister}
-        >
-
+        <form className="auth-form" onSubmit={handleRegister}>
           <input
             type="text"
             name="id"
             placeholder="ID"
             value={formData.id}
             onChange={handleChange}
+            autoComplete="username"
           />
 
           <input
@@ -88,6 +91,7 @@ function Register() {
             placeholder="ユーザーネーム"
             value={formData.username}
             onChange={handleChange}
+            autoComplete="name"
           />
 
           <input
@@ -96,6 +100,7 @@ function Register() {
             placeholder="パスワード"
             value={formData.password}
             onChange={handleChange}
+            autoComplete="new-password"
           />
 
           <input
@@ -104,29 +109,19 @@ function Register() {
             placeholder="パスワード（確認用）"
             value={formData.passwordConfirm}
             onChange={handleChange}
+            autoComplete="new-password"
           />
 
           {/* エラーメッセージ表示 */}
-          {errorMessage && (
-            <p className="auth-error">
-              {errorMessage}
-            </p>
-          )}
+          {errorMessage && <p className="auth-error">{errorMessage}</p>}
 
-          <button
-            className="auth-button"
-            type="submit"
-          >
-            登録
+          <button className="auth-button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "送信中…" : "申請を送信"}
           </button>
-
         </form>
 
-        <Link
-          className="auth-link"
-          to="/"
-        >
-          ログイン画面へ戻る
+        <Link className="auth-link" to="/login">
+          ログインへ戻る
         </Link>
       </div>
     </div>

@@ -1,11 +1,6 @@
 export const getErrorMessage = (error) => {
-
   if (error.response) {
-
-    return (
-      error.response.data.detail ||
-      "サーバーエラー"
-    );
+    return error.response.data.detail || "サーバーエラー";
   }
 
   if (error.request) {

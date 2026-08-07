@@ -13,16 +13,18 @@ function AdminBottomNav() {
           isActive ? "bottom-nav-item active" : "bottom-nav-item"
         }
       >
+        <span className="bottom-nav-icon">▦</span>
         シフト編集
       </NavLink>
 
       <NavLink
-        to="/admin/shift/requests"
+        to="/admin/period"
         className={({ isActive }) =>
           isActive ? "bottom-nav-item active" : "bottom-nav-item"
         }
       >
-        シフト希望
+        <span className="bottom-nav-icon">◫</span>
+        シフト期間
       </NavLink>
 
       <NavLink
@@ -31,6 +33,7 @@ function AdminBottomNav() {
           isActive ? "bottom-nav-item active" : "bottom-nav-item"
         }
       >
+        <span className="bottom-nav-icon">•••</span>
         その他
       </NavLink>
     </nav>

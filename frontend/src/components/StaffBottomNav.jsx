@@ -13,7 +13,8 @@ function StaffBottomNav() {
           isActive ? "bottom-nav-item active" : "bottom-nav-item"
         }
       >
-        シフト確認
+        <span className="bottom-nav-icon">▦</span>
+        シフト
       </NavLink>
 
       <NavLink
@@ -22,7 +23,8 @@ function StaffBottomNav() {
           isActive ? "bottom-nav-item active" : "bottom-nav-item"
         }
       >
-        シフト希望
+        <span className="bottom-nav-icon">✓</span>
+        希望提出
       </NavLink>
 
       <NavLink
@@ -31,6 +33,7 @@ function StaffBottomNav() {
           isActive ? "bottom-nav-item active" : "bottom-nav-item"
         }
       >
+        <span className="bottom-nav-icon">•••</span>
         その他
       </NavLink>
     </nav>
