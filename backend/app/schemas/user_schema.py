@@ -15,6 +15,6 @@ class UserRequestResponse(BaseModel):
 class UserCreateResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: str
     name: str
     role: str

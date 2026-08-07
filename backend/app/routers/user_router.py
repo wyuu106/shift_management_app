@@ -13,7 +13,7 @@ router = APIRouter()
 # ユーザー登録申請作成
 @router.post(
     "/register/request",
-    response_model = user_schema.UserRequestResponse
+    response_model = dict
 )
 def create_user_request(
     user: user_schema.UserRequestCreate,
@@ -79,12 +79,15 @@ def get_users(
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
 ):
+    if not current_user.role == "admin":
+        raise HTTPException(status_code=403, detail="権限がありません")
+
     return user_crud.get_users(db)
 
 # ユーザー削除
 @router.delete("/user/{user_id}")
 def delete_user(
-    user_id: int,
+    user_id: str,
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
 ):

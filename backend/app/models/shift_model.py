@@ -9,8 +9,8 @@ class ShiftRequest(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     shift_date: Mapped[date] = mapped_column(Date)
     remark: Mapped[str] = mapped_column(String, nullable=True)
-    user_id: Mapped[int] = mapped_column(
-        Integer,
+    user_id: Mapped[str] = mapped_column(
+        String,
         ForeignKey(
             "users.id",
             ondelete="CASCADE"
@@ -23,8 +23,8 @@ class Shift(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     shift_date: Mapped[date] = mapped_column(Date)
     remark: Mapped[str] = mapped_column(String, nullable=True)
-    user_id: Mapped[int] = mapped_column(
-        Integer,
+    user_id: Mapped[str] = mapped_column(
+        String,
         ForeignKey(
             "users.id",
             ondelete="CASCADE"

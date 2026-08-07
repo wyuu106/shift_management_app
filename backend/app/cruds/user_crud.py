@@ -189,7 +189,7 @@ def get_users(
     ).scalars().all()
 
 # ユーザー削除
-def delete_user(user_id: int, db: Session):
+def delete_user(user_id: str, db: Session):
     stmt = select(user_model.User).where(
         user_model.User.id == user_id
     )

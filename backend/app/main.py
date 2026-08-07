@@ -40,11 +40,13 @@ def init(db: Session = Depends(get_db)) -> dict:
 
     if exist_admin:
         raise HTTPException(status_code=400, detail="登録済みです")
-    
-    name = os.getenv("ADMIN_NAME")
+
+    admin_id = os.getenv("ADMIN_ID")
+    admin_name = os.getenv("ADMIN_NAME")
     password = os.getenv("PASSWORD")
     admin = User(
-        name = name,
+        id = admin_id,
+        name = admin_name,
         hashed_password = hash_password(password),
         role = "admin"
     )

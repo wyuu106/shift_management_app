@@ -11,7 +11,7 @@ class ShiftPeriodResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     
     id: int
-    name: str
+    name: str | None
     start: date
     end: date
     business_dates: list[date]

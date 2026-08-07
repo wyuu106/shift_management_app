@@ -49,6 +49,9 @@ def get_shift_request(
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
 ):
+    if not current_user.role == "admin":
+        raise HTTPException(status_code=403, detail="権限がありません")
+
     return shift_crud.get_shift_requests(db)
 
 # シフト登録

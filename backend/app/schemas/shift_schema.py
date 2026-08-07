@@ -8,13 +8,13 @@ class ShiftRequestCreate(BaseModel):
 
 # シフト希望レスポンス
 class ShiftRequestResponse(BaseModel):
-    user_id: int
+    user_id: str
     user_name: str
     shift_dates: list[ShiftRequestCreate]
 
 # シフト作成時のシフトメンバー情報
 class ShiftMemberCreate(BaseModel):
-    user_id: int
+    user_id: str
     remark: str | None = None
 
 # シフト作成時の日付ごとのシフト情報
@@ -24,7 +24,7 @@ class DayShiftCreate(BaseModel):
 
 # シフトレスポンスのシフトメンバー情報
 class ShiftMemberResponse(BaseModel):
-    user_id: int
+    user_id: str
     user_name: str
     remark: str | None = None
 
@@ -40,6 +40,6 @@ class ShiftDate(BaseModel):
 
 # ユーザーごとのシフト情報
 class UserShiftResponse(BaseModel):
-    user_id: int
+    user_id: str
     user_name: str
     shift_dates: list[ShiftDate]
