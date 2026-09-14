@@ -273,6 +273,13 @@
   max-width: 720px;
   margin: 0 auto;
 }
+.period-form .grid-2 > .field,
+.period-form input[type="date"] {
+  min-width: 0;
+}
+.period-form input[type="date"] {
+  max-width: 100%;
+}
 .business-date-head {
   display: flex;
   align-items: center;
