@@ -123,6 +123,15 @@
   max-width: none;
   padding: 0 0 82px;
 }
+.admin-shift-save-action {
+  position: fixed;
+  z-index: 40;
+  right: max(22px, calc((100vw - 920px) / 2 + 22px));
+  bottom: 98px;
+}
+.admin-shift-save-action .button {
+  box-shadow: 0 10px 35px rgba(30, 41, 64, 0.2);
+}
 .calendar-tap-guide {
   margin: 0 0 10px;
   color: var(--muted);
@@ -358,6 +367,9 @@
   gap: 7px;
 }
 @media (max-width: 640px) {
+  .admin-shift-save-action {
+    right: 12px;
+  }
   .request-overview {
     grid-template-columns: 1fr;
   }

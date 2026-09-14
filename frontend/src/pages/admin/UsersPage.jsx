@@ -59,7 +59,6 @@ function UsersPage() {
     <div className="page">
       <PageHeader
         title="スタッフ管理"
-        description="登録済みアカウントを確認・削除できます。"
         action={<BackButton to="/admin/others" />}
       />
 

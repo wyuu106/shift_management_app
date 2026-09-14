@@ -155,7 +155,6 @@ function AdminShifts() {
     <div className="page">
       <PageHeader
         title="シフト編集"
-        description="希望を取り込んでから、日ごとに出勤メンバーと備考を調整できます。"
         action={
           <button
             className="button button--secondary"
@@ -176,7 +175,7 @@ function AdminShifts() {
         <Empty
           icon="＋"
           title="シフト期間が未設定です"
-          description="「管理」からシフト期間を設定してください。"
+          description="シフト期間を設定してください。"
         />
       )}
       {status === "error" && <ErrorMessage message={error} onRetry={load} />}
@@ -292,12 +291,7 @@ function AdminShifts() {
               </section>
             </div>
           )}
-          <div className="sticky-action">
-            <span>
-              期間内のシフトを
-              <br />
-              <strong>まとめて保存</strong>
-            </span>
+          <div className="admin-shift-save-action">
             <button className="button" onClick={save} disabled={saving}>
               {saving ? "保存中…" : "シフトを登録"}
             </button>

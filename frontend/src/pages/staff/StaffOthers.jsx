@@ -23,7 +23,6 @@ function StaffOthers() {
     <div className="page">
       <PageHeader
         title="その他"
-        description="アカウントやアプリに関するメニューです。"
       />
 
       <div className="menu-list card">

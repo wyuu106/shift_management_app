@@ -70,12 +70,12 @@ function ShiftPeriodPage() {
     setError("");
 
     if (!form.start || !form.end || form.start >= form.end) {
-      setError("開始日より後の日付を終了日に設定してね。");
+      setError("終了日は開始日より後の日付を設定してください。");
       return;
     }
 
     if (businessDates.size === 0) {
-      setError("営業日を1日以上選択してね。");
+      setError("営業日を1日以上選択してください。");
       return;
     }
 
@@ -100,7 +100,6 @@ function ShiftPeriodPage() {
     <div className="page">
       <PageHeader
         title="シフト期間の設定"
-        description="受付する期間と営業日を設定します。日曜日と水曜日は初期状態で休業日になるよ。"
       />
 
       <SuccessPopup

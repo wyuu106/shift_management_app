@@ -23,7 +23,6 @@ function AdminOthers() {
     <div className="page">
       <PageHeader
         title="その他"
-        description="スタッフのアカウントを管理できます。"
       />
 
       <div className="menu-list card">

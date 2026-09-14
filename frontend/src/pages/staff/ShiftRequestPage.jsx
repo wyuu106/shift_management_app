@@ -97,7 +97,6 @@ function ShiftRequestPage() {
     <div className="page">
       <PageHeader
         title="シフト希望"
-        description="出勤できる日を選んで、必要なら備考を入力してね。選び直して送信すると内容が更新されます。"
       />
       <SuccessPopup
         message={message}
@@ -109,7 +108,7 @@ function ShiftRequestPage() {
         <Empty
           icon="休"
           title="受付中の期間がありません"
-          description="管理者が受付期間を設定するまで待ってね。"
+          description="管理者が期間を設定すると、ここに表示されます。"
         />
       )}
       {status === "error" && <ErrorMessage message={error} onRetry={load} />}
@@ -143,7 +142,6 @@ function ShiftRequestPage() {
                     </span>
                     <span>
                       <strong>{formatDate(key)}</strong>
-                      <small>{selected ? "出勤できます" : "お休み希望"}</small>
                     </span>
                   </button>
                   {selected && (

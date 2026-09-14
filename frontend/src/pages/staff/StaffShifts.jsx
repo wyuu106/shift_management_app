@@ -36,7 +36,6 @@ function StaffShifts() {
     <div className="page">
       <PageHeader
         title="確定シフト"
-        description="確定した全体のシフトを確認できます。休業日は「休」と表示されます。"
       />
       {status === "loading" && <Loading label="シフトを読み込んでいます" />}
       {status === "empty" && (

@@ -85,7 +85,6 @@ function UserRequestsPage() {
           <Empty
             icon="✓"
             title="未処理の申請はありません"
-            description="新しい申請が届くとここに表示されます。"
           />
         ) : (
           <div className="approval-list">
