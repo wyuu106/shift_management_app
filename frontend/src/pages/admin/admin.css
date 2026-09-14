@@ -273,12 +273,18 @@
   max-width: 720px;
   margin: 0 auto;
 }
+.period-form .grid-2 {
+  grid-template-columns: minmax(0, 1fr);
+}
 .period-form .grid-2 > .field,
 .period-form input[type="date"] {
+  width: 100%;
   min-width: 0;
 }
 .period-form input[type="date"] {
   max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .business-date-head {
   display: flex;
