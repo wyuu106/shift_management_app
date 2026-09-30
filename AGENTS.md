@@ -10,6 +10,7 @@
 - 認証: JWT Bearer認証
 
 実装前に、対象機能に応じて以下を確認すること。
+また、以下のファイルはユーザーの許可なしに変更しないこと。
 
 - 共通要件: `docs/requirements/README.md`
 - 管理者要件: `docs/requirements/admin.md`
