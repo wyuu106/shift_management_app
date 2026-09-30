@@ -42,10 +42,6 @@ function ShiftDetailSheet({ date, members = [], onClose }) {
             <ul className="shift-detail-list">
               {members.map((member) => (
                 <li key={member.user_id}>
-                  <span className="shift-detail-list__avatar" aria-hidden="true">
-                    {member.user_name.slice(0, 1)}
-                  </span>
-
                   <div>
                     <strong>{member.user_name}</strong>
                     {member.remark?.trim() && (
