@@ -1,64 +1,3 @@
-.admin-period-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
-  padding: 15px 17px;
-}
-.admin-period-bar div {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.admin-period-bar > span {
-  color: var(--muted);
-  font-size: 0.76rem;
-  font-weight: 750;
-}
-.shift-editor-list {
-  display: grid;
-  gap: 10px;
-  padding-bottom: 90px;
-}
-.shift-editor {
-  overflow: hidden;
-}
-.shift-editor__head {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  padding: 15px 17px;
-  background: white;
-  color: var(--ink);
-  text-align: left;
-  cursor: pointer;
-}
-.shift-editor__head > span:first-child {
-  display: grid;
-  gap: 2px;
-}
-.shift-editor__head small {
-  color: var(--muted);
-  font-size: 0.68rem;
-}
-.shift-editor__count {
-  color: var(--primary-dark);
-  font-size: 0.76rem;
-  font-weight: 800;
-}
-.shift-editor__count b {
-  margin-left: 7px;
-  color: #8f97a7;
-}
-.shift-editor__body {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-  border-top: 1px solid var(--line);
-  background: #fafbfc;
-}
 .admin-shift-calendar {
   padding-bottom: 36px;
 }
@@ -74,63 +13,6 @@
 }
 .admin-shift-save-action .button {
   box-shadow: 0 10px 35px rgba(30, 41, 64, 0.2);
-}
-.calendar-tap-guide {
-  margin: 0 0 10px;
-  color: var(--muted);
-  font-size: 0.72rem;
-  text-align: center;
-}
-.request-overview {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-.request-overview__day {
-  overflow: hidden;
-}
-.request-overview__day header {
-  padding: 15px 17px;
-  border-bottom: 1px solid var(--line);
-}
-.request-overview__day header div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.request-overview__day ul {
-  margin: 0;
-  padding: 7px 14px;
-  list-style: none;
-}
-.request-overview__day li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid #eef0f4;
-}
-.request-overview__day li:last-child {
-  border: 0;
-}
-.request-overview__day li div {
-  display: grid;
-  gap: 1px;
-}
-.request-overview__day li strong {
-  font-size: 0.8rem;
-}
-.request-overview__day li small {
-  color: var(--muted);
-  font-size: 0.68rem;
-}
-.request-overview__none {
-  margin: 0;
-  padding: 24px;
-  color: var(--muted);
-  font-size: 0.76rem;
-  text-align: center;
 }
 .avatar {
   display: grid;
@@ -293,9 +175,6 @@
 @media (max-width: 640px) {
   .admin-shift-save-action {
     right: 12px;
-  }
-  .request-overview {
-    grid-template-columns: 1fr;
   }
   .approval-card {
     flex-wrap: wrap;

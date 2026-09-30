@@ -26,12 +26,8 @@ function StaffOthers() {
       />
 
       <div className="menu-list card">
-        <button
-          className="menu-list__logout"
-          onClick={logout}
-        >
-          <span className="menu-list__icon menu-list__icon--danger">↪</span>
-          <span>
+        <button className="menu-list__logout" onClick={logout}>
+          <span className="menu-list__content">
             <strong>ログアウト</strong>
             <small>ログイン画面へ戻る</small>
           </span>

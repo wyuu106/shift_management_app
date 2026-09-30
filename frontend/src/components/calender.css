@@ -23,13 +23,6 @@
   font-weight: 750;
 }
 
-.shift-calendar__eyebrow {
-  color: #5577e8;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-}
-
 .shift-calendar__period {
   display: flex;
   flex-shrink: 0;

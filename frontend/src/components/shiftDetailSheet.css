@@ -78,18 +78,6 @@
   background: white;
 }
 
-.shift-detail-list__avatar {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--primary-soft);
-  color: var(--primary-dark);
-  font-weight: 800;
-}
-
 .shift-detail-list li div {
   display: grid;
   min-width: 0;
