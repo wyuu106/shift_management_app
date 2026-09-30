@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/PageHeader";
 import Calender from "../../components/Calender";
+import ShiftEditSheet from "../../components/ShiftEditSheet";
 import {
   Empty,
   ErrorMessage,
@@ -9,7 +10,7 @@ import {
   SuccessPopup,
 } from "../../components/Feedback";
 import { api } from "../../utils/api";
-import { dateKey, formatDate } from "../../utils/date";
+import { dateKey } from "../../utils/date";
 import { getErrorMessage } from "../../utils/error";
 import useUnsavedChanges from "../../hooks/useUnsavedChanges";
 import "./admin.css";
@@ -187,110 +188,19 @@ function AdminShifts() {
               shifts={calendarShifts}
               onDateSelect={setOpenDate}
               selectedDate={openDate}
+              dateActionLabel="シフトを編集"
             />
           </div>
-          {openDate && (
-            <div
-              className="shift-sheet-layer"
-              role="presentation"
-              onMouseDown={(event) => {
-                if (event.target === event.currentTarget) setOpenDate("");
-              }}
-            >
-              <section
-                className="shift-sheet"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="shift-sheet-title"
-              >
-                <header className="shift-sheet__header">
-                  <div>
-                    <h2 id="shift-sheet-title">{formatDate(openDate)}</h2>
-                    <span>
-                      希望 {requestMap.get(openDate)?.length || 0}人・選択{" "}
-                      {
-                        Object.values(days[openDate] || {}).filter(
-                          (item) => item.selected,
-                        ).length
-                      }
-                      人
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="shift-sheet__close"
-                    onClick={() => setOpenDate("")}
-                    aria-label="閉じる"
-                  >
-                    ×
-                  </button>
-                </header>
-                <div className="shift-sheet__body">
-                  {users.length === 0 ? (
-                    <p className="muted">登録済みスタッフがいません。</p>
-                  ) : (
-                    users.map((user) => {
-                      const value = days[openDate]?.[String(user.id)] || {
-                        selected: false,
-                        remark: "",
-                      };
-                      const requested = requestMap
-                        .get(openDate)
-                        ?.some(
-                          (member) =>
-                            String(member.user_id) === String(user.id),
-                        );
-                      return (
-                        <div
-                          className={`member-row ${value.selected ? "member-row--selected" : ""}`}
-                          key={user.id}
-                        >
-                          <button
-                            type="button"
-                            className="member-row__toggle"
-                            onClick={() =>
-                              updateMember(openDate, String(user.id), {
-                                selected: !value.selected,
-                              })
-                            }
-                          >
-                            <span className="member-row__check">
-                              {value.selected ? "✓" : ""}
-                            </span>
-                            <span>
-                              <strong>{user.name}</strong>
-                              {requested && <small>希望あり</small>}
-                            </span>
-                          </button>
-                          {value.selected && (
-                            <input
-                              className="input"
-                              value={value.remark}
-                              onChange={(e) =>
-                                updateMember(openDate, String(user.id), {
-                                  remark: e.target.value,
-                                })
-                              }
-                              placeholder="備考（時間帯など）"
-                            />
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-                <footer className="shift-sheet__footer">
-                  <button
-                    type="button"
-                    className="button button--block"
-                    onClick={() => setOpenDate("")}
-                  >
-                    この日の編集を完了
-                  </button>
-                </footer>
-              </section>
-            </div>
-          )}
+          <ShiftEditSheet
+            date={openDate}
+            users={users}
+            values={days[openDate]}
+            requestedMembers={requestMap.get(openDate)}
+            onUpdateMember={(userId, changes) =>
+              updateMember(openDate, userId, changes)
+            }
+            onClose={() => setOpenDate("")}
+          />
           <div className="admin-shift-save-action">
             <button className="button" onClick={save} disabled={saving}>
               {saving ? "保存中…" : "シフトを登録"}

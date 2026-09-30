@@ -19,7 +19,13 @@ const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const toDateKey = (value) =>
   typeof value === "string" ? value.slice(0, 10) : format(value, "yyyy-MM-dd");
 
-function Calender({ period, shifts = [], onDateSelect, selectedDate = "" }) {
+function Calender({
+  period,
+  shifts = [],
+  onDateSelect,
+  selectedDate = "",
+  dateActionLabel = "シフト詳細を確認",
+}) {
   const calendarData = useMemo(() => {
     if (!period) return null;
 
@@ -60,6 +66,14 @@ function Calender({ period, shifts = [], onDateSelect, selectedDate = "" }) {
         <span>
           <i className="legend-dot legend-dot--closed" />
           休業日
+        </span>
+        <span>
+          <i className="legend-dot legend-dot--understaffed" />
+          3人以下
+        </span>
+        <span>
+          <i className="legend-dot legend-dot--well-staffed" />
+          5人以上
         </span>
       </div>
 
@@ -102,12 +116,20 @@ function Calender({ period, shifts = [], onDateSelect, selectedDate = "" }) {
                   const isBusinessDay = businessDateKeys.has(key);
                   const members = shiftsByDate.get(key) ?? [];
                   const dayOfWeek = getDay(date);
+                  const staffingClass = isBusinessDay
+                    ? members.length <= 3
+                      ? "calendar-day--understaffed"
+                      : members.length >= 5
+                        ? "calendar-day--well-staffed"
+                        : ""
+                    : "";
                   const classNames = [
                     "calendar-day",
                     onDateSelect && isBusinessDay
                       ? "calendar-day--clickable"
                       : "",
                     selectedDate === key ? "calendar-day--selected" : "",
+                    staffingClass,
                     !isBusinessDay ? "calendar-day--closed" : "",
                     dayOfWeek === 0 ? "calendar-day--sunday" : "",
                     dayOfWeek === 6 ? "calendar-day--saturday" : "",
@@ -152,7 +174,7 @@ function Calender({ period, shifts = [], onDateSelect, selectedDate = "" }) {
                         className={classNames}
                         key={key}
                         onClick={() => onDateSelect(key)}
-                        aria-label={`${format(date, "M月d日", { locale: ja })}のシフトを編集`}
+                        aria-label={`${format(date, "M月d日", { locale: ja })}の${dateActionLabel}`}
                         aria-pressed={selectedDate === key}
                       >
                         {content}

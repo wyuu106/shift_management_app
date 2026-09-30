@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { eachDayOfInterval, getDay, parseISO } from "date-fns";
+import {
+  eachDayOfInterval,
+  eachMonthOfInterval,
+  endOfMonth,
+  getDay,
+  isAfter,
+  isBefore,
+  parseISO,
+  startOfMonth,
+} from "date-fns";
 import PageHeader from "../../components/PageHeader";
 import { Notice, SuccessPopup } from "../../components/Feedback";
 import { api } from "../../utils/api";
 import { dateKey, formatDate } from "../../utils/date";
 import { getErrorMessage } from "../../utils/error";
 import "./admin.css";
+
+const WEEKDAYS = ["月", "火", "水", "木", "金", "土", "日"];
 
 function ShiftPeriodPage() {
   const [form, setForm] = useState({ name: "", start: "", end: "" });
@@ -35,6 +46,35 @@ function ShiftPeriodPage() {
       end: parseISO(form.end),
     });
   }, [form.start, form.end]);
+
+  const calendarMonths = useMemo(() => {
+    if (dates.length === 0) return [];
+
+    const periodStart = dates[0];
+    const periodEnd = dates.at(-1);
+
+    return eachMonthOfInterval({
+      start: periodStart,
+      end: periodEnd,
+    }).map((month) => {
+      const monthStart = startOfMonth(month);
+      const monthEnd = endOfMonth(month);
+      const visibleStart = isBefore(periodStart, monthStart)
+        ? monthStart
+        : periodStart;
+      const visibleEnd = isAfter(periodEnd, monthEnd) ? monthEnd : periodEnd;
+
+      return {
+        key: dateKey(month),
+        label: formatDate(month, "yyyy年 M月"),
+        leadingCells: (getDay(visibleStart) + 6) % 7,
+        dates: eachDayOfInterval({
+          start: visibleStart,
+          end: visibleEnd,
+        }),
+      };
+    });
+  }, [dates]);
 
   const changeDateRange = (name, value) => {
     const next = { ...form, [name]: value };
@@ -161,24 +201,51 @@ function ShiftPeriodPage() {
                 </small>
               </div>
 
-              <div className="business-date-grid">
-                {dates.map((date) => {
-                  const key = dateKey(date);
-                  const active = businessDates.has(key);
+              <div className="business-date-calendars">
+                {calendarMonths.map((month) => (
+                  <section className="business-date-calendar" key={month.key}>
+                    <h2>{month.label}</h2>
 
-                  return (
-                    <button
-                      type="button"
-                      className={active ? "active" : ""}
-                      key={key}
-                      onClick={() => toggle(key)}
+                    <div
+                      className="business-date-weekdays"
+                      aria-hidden="true"
                     >
-                      <strong>{formatDate(date, "d")}</strong>
-                      <small>{formatDate(date, "E")}</small>
-                      <span>{active ? "営業" : "休"}</span>
-                    </button>
-                  );
-                })}
+                      {WEEKDAYS.map((weekday) => (
+                        <span key={weekday}>{weekday}</span>
+                      ))}
+                    </div>
+
+                    <div className="business-date-grid">
+                      {Array.from({ length: month.leadingCells }).map(
+                        (_, index) => (
+                          <span
+                            className="business-date-grid__empty"
+                            key={`empty-${index}`}
+                          />
+                        ),
+                      )}
+
+                      {month.dates.map((date) => {
+                        const key = dateKey(date);
+                        const active = businessDates.has(key);
+
+                        return (
+                          <button
+                            type="button"
+                            className={active ? "active" : ""}
+                            key={key}
+                            onClick={() => toggle(key)}
+                            aria-pressed={active}
+                          >
+                            <strong>{formatDate(date, "d")}</strong>
+                            <small>{formatDate(date, "E")}</small>
+                            <span>{active ? "営業" : "休"}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
               </div>
             </div>
           )}

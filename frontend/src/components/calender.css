@@ -42,6 +42,7 @@
 
 .shift-calendar__legend {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 18px;
   color: #7a8293;
@@ -65,6 +66,12 @@
 }
 .legend-dot--closed {
   background: #d9dce3;
+}
+.legend-dot--understaffed {
+  background: #f1a5ac;
+}
+.legend-dot--well-staffed {
+  background: #e9c75a;
 }
 
 .shift-calendar__months {
@@ -147,6 +154,27 @@
   z-index: 1;
   background: #edf1ff;
   box-shadow: inset 0 0 0 2px #5577e8;
+}
+
+.calendar-day--understaffed {
+  background: #fff1f2;
+}
+
+.calendar-day--well-staffed {
+  background: #fff8df;
+}
+
+.calendar-day--understaffed.calendar-day--clickable:hover {
+  background: #ffe7e9;
+}
+
+.calendar-day--well-staffed.calendar-day--clickable:hover {
+  background: #fff1c7;
+}
+
+.calendar-day--selected,
+.calendar-day--selected.calendar-day--clickable:hover {
+  background: #edf1ff;
 }
 
 .calendar-day:nth-child(7n) {

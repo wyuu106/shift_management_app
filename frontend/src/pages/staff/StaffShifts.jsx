@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Calender from "../../components/Calender";
 import PageHeader from "../../components/PageHeader";
+import ShiftDetailSheet from "../../components/ShiftDetailSheet";
 import { Empty, ErrorMessage, Loading } from "../../components/Feedback";
 import { api } from "../../utils/api";
+import { dateKey } from "../../utils/date";
 import { getErrorMessage } from "../../utils/error";
 
 function StaffShifts() {
@@ -10,6 +12,15 @@ function StaffShifts() {
   const [shifts, setShifts] = useState([]);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
+  const [openDate, setOpenDate] = useState("");
+
+  const shiftsByDate = useMemo(
+    () =>
+      new Map(
+        shifts.map((shift) => [dateKey(shift.shift_date), shift.members ?? []]),
+      ),
+    [shifts],
+  );
 
   const load = useCallback(async () => {
     try {
@@ -20,6 +31,7 @@ function StaffShifts() {
 
       setPeriod(periodRes.data);
       setShifts(shiftRes.data);
+      setOpenDate("");
       setStatus("ready");
     } catch (err) {
       setError(getErrorMessage(err));
@@ -47,7 +59,20 @@ function StaffShifts() {
       )}
       {status === "error" && <ErrorMessage message={error} onRetry={load} />}
       {status === "ready" && (
-        <Calender period={period} shifts={shifts} />
+        <>
+          <Calender
+            period={period}
+            shifts={shifts}
+            onDateSelect={setOpenDate}
+            selectedDate={openDate}
+          />
+
+          <ShiftDetailSheet
+            date={openDate}
+            members={shiftsByDate.get(openDate) ?? []}
+            onClose={() => setOpenDate("")}
+          />
+        </>
       )}
     </div>
   );
