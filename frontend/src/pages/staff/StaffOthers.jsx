@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import PageHeader from "../../components/PageHeader";
 import { clearSession } from "../../utils/api";
@@ -26,6 +26,14 @@ function StaffOthers() {
       />
 
       <div className="menu-list card">
+        <Link to="/staff/guide">
+          <span className="menu-list__content">
+            <strong>使用方法</strong>
+            <small>シフト希望と確認の操作手順</small>
+          </span>
+          <b>›</b>
+        </Link>
+
         <button className="menu-list__logout" onClick={logout}>
           <span className="menu-list__content">
             <strong>ログアウト</strong>

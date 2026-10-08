@@ -42,6 +42,14 @@ function AdminOthers() {
           <b>›</b>
         </Link>
 
+        <Link to="/admin/guide">
+          <span className="menu-list__content">
+            <strong>使用方法</strong>
+            <small>各機能の操作手順を確認</small>
+          </span>
+          <b>›</b>
+        </Link>
+
         <button
           className="menu-list__logout"
           onClick={logout}
