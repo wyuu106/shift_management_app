@@ -25,6 +25,7 @@ function Calender({
   onDateSelect,
   selectedDate = "",
   dateActionLabel = "シフト詳細を確認",
+  periodControl,
 }) {
   const calendarData = useMemo(() => {
     if (!period) return null;
@@ -49,7 +50,7 @@ function Calender({
     <section className="shift-calendar" aria-label="シフトカレンダー">
       <header className="shift-calendar__header">
         <div>
-          <h2>{period.name || "シフトカレンダー"}</h2>
+          {periodControl || <h2>{period.name || "シフトカレンダー"}</h2>}
         </div>
         <p className="shift-calendar__period">
           {format(periodStart, "M月d日", { locale: ja })}

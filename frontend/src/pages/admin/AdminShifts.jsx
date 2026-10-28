@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PageHeader from "../../components/PageHeader";
 import Calender from "../../components/Calender";
 import ShiftEditSheet from "../../components/ShiftEditSheet";
@@ -13,9 +13,15 @@ import { api } from "../../utils/api";
 import { dateKey } from "../../utils/date";
 import { getErrorMessage } from "../../utils/error";
 import useUnsavedChanges from "../../hooks/useUnsavedChanges";
+import { useSearchParams } from "react-router-dom";
+import PeriodSelector from "../../components/PeriodSelector";
 import "./admin.css";
 
 function AdminShifts() {
+  const loadRequest = useRef(0);
+  const [searchParams] = useSearchParams();
+  const periodId = searchParams.get("period_id");
+  const [periods, setPeriods] = useState([]);
   const [period, setPeriod] = useState(null);
   const [users, setUsers] = useState([]);
   const [days, setDays] = useState({});
@@ -30,13 +36,23 @@ function AdminShifts() {
   useUnsavedChanges(hasUnsavedChanges);
 
   const load = useCallback(async () => {
+    const requestId = ++loadRequest.current;
+    setStatus("loading");
+    setError("");
     try {
+      const listRes = await api.get("/periods");
+      if (requestId !== loadRequest.current) return;
+      setPeriods(listRes.data);
+      const selected = await api.get("/period", { params: { period_id: periodId } });
+      if (requestId !== loadRequest.current) return;
+      const params = { period_id: selected.data.id };
       const [periodRes, usersRes, shiftsRes, requestsRes] = await Promise.all([
-        api.get("/period"),
+        Promise.resolve(selected),
         api.get("/users"),
-        api.get("/shifts"),
-        api.get("/shift/requests"),
+        api.get("/shifts", { params }),
+        api.get("/shift/requests", { params }),
       ]);
+      if (requestId !== loadRequest.current) return;
       const initial = {};
       periodRes.data.business_dates.forEach((date) => {
         initial[dateKey(date)] = {};
@@ -57,13 +73,18 @@ function AdminShifts() {
       setStatus("ready");
       setHasUnsavedChanges(false);
     } catch (err) {
+      if (requestId !== loadRequest.current) return;
+      setPeriod(null);
       setError(getErrorMessage(err));
       setStatus(err.response?.status === 404 ? "empty" : "error");
     }
-  }, []);
+  }, [periodId]);
   useEffect(() => {
     const timer = window.setTimeout(load, 0);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      loadRequest.current += 1;
+    };
   }, [load]);
 
   const requestMap = useMemo(
@@ -142,7 +163,7 @@ function AdminShifts() {
             })),
         };
       });
-      const res = await api.put("/shift", payload);
+      const res = await api.put("/shift", payload, { params: { period_id: period.id } });
       setHasUnsavedChanges(false);
       setMessage(res.data.message || "シフトを登録しました");
     } catch (err) {
@@ -170,13 +191,16 @@ function AdminShifts() {
         message={message}
         onClose={() => setMessage("")}
       />
+      {status !== "ready" && (
+        <PeriodSelector periods={periods} period={period} disabled={saving || status === "loading"} />
+      )}
       {error && status === "ready" && <Notice type="error">{error}</Notice>}
       {status === "loading" && <Loading label="シフト情報を読み込んでいます" />}
       {status === "empty" && (
         <Empty
           icon="＋"
-          title="シフト期間が未設定です"
-          description="シフト期間を設定してください。"
+          title="現在のシフト期間はありません"
+          description="期間を選択するか、新しいシフト期間を設定してください。"
         />
       )}
       {status === "error" && <ErrorMessage message={error} onRetry={load} />}
@@ -184,6 +208,7 @@ function AdminShifts() {
         <>
           <div className="admin-shift-calendar">
             <Calender
+              periodControl={<PeriodSelector periods={periods} period={period} disabled={saving} />}
               period={period}
               shifts={calendarShifts}
               onDateSelect={setOpenDate}

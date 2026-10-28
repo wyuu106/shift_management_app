@@ -3,16 +3,17 @@ from sqlalchemy import select, delete
 from fastapi import Response, HTTPException, status
 from datetime import date
 from collections import defaultdict
-from app.utils.period_util import get_period
+from app.utils.period_util import get_period, lock_period_updates
 from app.models import shift_model, user_model, period_model
 from app.schemas import shift_schema
 
 # ユーザーごとのシフト希望一覧取得
 def get_user_shift_requests(
         current_user: user_model.User,
-        db: Session
+        db: Session,
+        period_id: int | None = None,
 ) -> shift_schema.ShiftRequestResponse:
-    period = get_period(db)
+    period = get_period(db, period_id, latest=period_id is None)
 
     stmt = (
         select(
@@ -46,11 +47,16 @@ def get_user_shift_requests(
 def create_shift_request(
         shift_request_dates: list[shift_schema.ShiftRequestCreate],
         current_user: user_model.User,
-        db: Session
+        db: Session,
+        period_id: int | None = None,
 ) -> dict:
-    period = get_period(db)
-    
     try:
+        lock_period_updates(db)
+        period = get_period(db, period_id, latest=period_id is None)
+        allowed = {d.business_date for d in period.business_dates}
+        dates = [d.shift_date for d in shift_request_dates]
+        if len(dates) != len(set(dates)) or any(d not in allowed for d in dates):
+            raise HTTPException(status_code=400, detail="選択した期間の営業日を重複なく指定してください")
         db.execute(delete(shift_model.ShiftRequest).where(
             shift_model.ShiftRequest.user_id == current_user.id,
             shift_model.ShiftRequest.shift_date >= period.start,
@@ -76,9 +82,10 @@ def create_shift_request(
 
 # 指定範囲のシフト希望一覧取得
 def get_shift_requests(
-        db: Session
+        db: Session,
+        period_id: int | None = None,
 ) -> list[shift_schema.DayShiftResponse]:
-    period = get_period(db)
+    period = get_period(db, period_id)
     
     stmt = (
         select(
@@ -130,11 +137,24 @@ def get_shift_requests(
 # シフト登録
 def create_day_shift(
         shifts: list[shift_schema.DayShiftCreate],
-        db: Session
+        db: Session,
+        period_id: int | None = None,
 ) -> dict:
-    period = get_period(db)
-    
     try:
+        lock_period_updates(db)
+        period = get_period(db, period_id)
+        allowed = {d.business_date for d in period.business_dates}
+        dates = [d.shift_date for d in shifts]
+        if len(dates) != len(set(dates)) or any(d not in allowed for d in dates):
+            raise HTTPException(status_code=400, detail="選択した期間の営業日を重複なく指定してください")
+        user_ids = {m.user_id for day in shifts for m in day.members}
+        valid_users = set(db.scalars(select(user_model.User.id).where(
+            user_model.User.id.in_(user_ids), user_model.User.role == "staff"
+        )).all())
+        if valid_users != user_ids or any(
+            len(day.members) != len({m.user_id for m in day.members}) for day in shifts
+        ):
+            raise HTTPException(status_code=400, detail="スタッフの指定が不正です")
         db.execute(delete(shift_model.Shift).where(
             shift_model.Shift.shift_date >= period.start,
             shift_model.Shift.shift_date <= period.end
@@ -160,9 +180,10 @@ def create_day_shift(
 
 # 指定範囲のシフト一覧取得
 def get_shifts(
-        db: Session
+        db: Session,
+        period_id: int | None = None,
 ) -> list[shift_schema.DayShiftResponse]:
-    period = get_period(db)
+    period = get_period(db, period_id)
     
     stmt = (
         select(
@@ -214,9 +235,10 @@ def get_shifts(
 # ユーザーごとのシフト確認
 def get_user_shifts(
         current_user: user_model.User,
-        db: Session
+        db: Session,
+        period_id: int | None = None,
 ) -> shift_schema.UserShiftResponse:
-    period = get_period(db)
+    period = get_period(db, period_id)
 
     stmt = select(
         shift_model.Shift.shift_date,

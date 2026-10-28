@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   eachDayOfInterval,
   eachMonthOfInterval,
@@ -24,20 +24,6 @@ function ShiftPeriodPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    api
-      .get("/period")
-      .then(({ data }) => {
-        setForm({
-          name: data.name || "",
-          start: dateKey(data.start),
-          end: dateKey(data.end),
-        });
-        setBusinessDates(new Set(data.business_dates.map(dateKey)));
-      })
-      .catch(() => {});
-  }, []);
 
   const dates = useMemo(() => {
     if (!form.start || !form.end || form.start > form.end) return [];
@@ -122,11 +108,32 @@ function ShiftPeriodPage() {
     setSaving(true);
 
     try {
-      const response = await api.put("/period", {
+      const payload = {
         ...form,
         name: form.name.trim() || null,
         business_dates: [...businessDates].sort(),
-      });
+      };
+      let response;
+      // 再送時もサーバーが重複対象を照合する。対象変更時は再確認する。
+      while (!response) {
+        try {
+          response = await api.put("/period", payload);
+        } catch (conflict) {
+          const detail = conflict.response?.data?.detail;
+          if (conflict.response?.status !== 409 || !Array.isArray(detail?.periods)) {
+            throw conflict;
+          }
+          const targets = detail.periods.map((item) =>
+            `${item.name || "名称未設定"}（${item.start} 〜 ${item.end}）`,
+          ).join("\n");
+          if (!window.confirm(
+            `${detail.message}\n${targets}\n対象期間全体を新しい1件に置き換えます。\n対象期間のシフト希望は削除されます。確定シフトのデータは保持されます。`,
+          )) {
+            return;
+          }
+          payload.overwrite_period_ids = detail.periods.map((item) => item.id);
+        }
+      }
 
       setMessage(response.data.message || "期間を保存しました");
     } catch (saveError) {

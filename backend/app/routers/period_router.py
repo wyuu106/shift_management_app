@@ -32,7 +32,17 @@ def create_shift_period(
     response_model = period_schema.ShiftPeriodResponse
 )
 def get_shift_periods(
+        period_id: int | None = None,
+        latest: bool = False,
         db: Session = Depends(get_db),
         current_user: user_model.User = Depends(get_current_user)
 ):
-    return period_crud.get_shift_period(db)
+    return period_crud.get_shift_period(db, period_id, latest)
+
+
+@router.get("/periods", response_model=list[period_schema.ShiftPeriodResponse])
+def list_shift_periods(
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user),
+):
+    return period_crud.get_shift_periods(db)

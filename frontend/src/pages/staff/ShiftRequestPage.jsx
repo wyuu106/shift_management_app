@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { eachDayOfInterval, parseISO } from "date-fns";
 import PageHeader from "../../components/PageHeader";
 import {
@@ -12,9 +12,15 @@ import { api } from "../../utils/api";
 import { dateKey, formatDate } from "../../utils/date";
 import { getErrorMessage } from "../../utils/error";
 import useUnsavedChanges from "../../hooks/useUnsavedChanges";
+import { useSearchParams } from "react-router-dom";
+import PeriodSelector from "../../components/PeriodSelector";
 import "./staff.css";
 
 function ShiftRequestPage() {
+  const loadRequest = useRef(0);
+  const [searchParams] = useSearchParams();
+  const periodId = searchParams.get("period_id");
+  const [periods, setPeriods] = useState([]);
   const [period, setPeriod] = useState(null);
   const [requests, setRequests] = useState({});
   const [status, setStatus] = useState("loading");
@@ -26,11 +32,22 @@ function ShiftRequestPage() {
   useUnsavedChanges(hasUnsavedChanges);
 
   const load = useCallback(async () => {
+    const requestId = ++loadRequest.current;
+    setStatus("loading");
+    setError("");
     try {
+      const listRes = await api.get("/periods");
+      if (requestId !== loadRequest.current) return;
+      setPeriods(listRes.data);
+      const selected = await api.get("/period", {
+        params: { period_id: periodId, latest: true },
+      });
+      if (requestId !== loadRequest.current) return;
       const [periodRes, requestRes] = await Promise.all([
-        api.get("/period"),
-        api.get("/user/shift/requests"),
+        Promise.resolve(selected),
+        api.get("/user/shift/requests", { params: { period_id: selected.data.id } }),
       ]);
+      if (requestId !== loadRequest.current) return;
       setPeriod(periodRes.data);
       setRequests(
         Object.fromEntries(
@@ -43,13 +60,18 @@ function ShiftRequestPage() {
       setStatus("ready");
       setHasUnsavedChanges(false);
     } catch (err) {
+      if (requestId !== loadRequest.current) return;
+      setPeriod(null);
       setError(getErrorMessage(err));
       setStatus(err.response?.status === 404 ? "empty" : "error");
     }
-  }, []);
+  }, [periodId]);
   useEffect(() => {
     const timer = window.setTimeout(load, 0);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      loadRequest.current += 1;
+    };
   }, [load]);
 
   const businessDates = useMemo(() => {
@@ -83,7 +105,9 @@ function ShiftRequestPage() {
           shift_date: key,
           remark: requests[key]?.remark.trim() || null,
         }));
-      const res = await api.put("/shift/request", payload);
+      const res = await api.put("/shift/request", payload, {
+        params: { period_id: period.id },
+      });
       setHasUnsavedChanges(false);
       setMessage(res.data.message || "シフト希望を登録しました");
     } catch (err) {
@@ -102,6 +126,9 @@ function ShiftRequestPage() {
         message={message}
         onClose={() => setMessage("")}
       />
+      {status !== "ready" && (
+        <PeriodSelector periods={periods} period={period} disabled={saving || status === "loading"} />
+      )}
       {error && status === "ready" && <Notice type="error">{error}</Notice>}
       {status === "loading" && <Loading label="登録期間を読み込んでいます" />}
       {status === "empty" && (
@@ -117,7 +144,7 @@ function ShiftRequestPage() {
           <div className="request-summary card">
             <div>
               <span className="badge badge--primary">受付期間</span>
-              <strong>{period.name || "シフト希望"}</strong>
+              <PeriodSelector periods={periods} period={period} disabled={saving} />
             </div>
             <p>
               {formatDate(period.start, "M/d")} 〜{" "}

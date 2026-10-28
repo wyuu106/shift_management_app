@@ -6,6 +6,7 @@ class ShiftPeriodCreate(BaseModel):
     start: date
     end: date
     business_dates: list[date]
+    overwrite_period_ids: list[int] | None = None
 
 class ShiftPeriodResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

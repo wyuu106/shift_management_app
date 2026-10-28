@@ -16,12 +16,14 @@ router = APIRouter()
     response_model = shift_schema.ShiftRequestResponse
 )
 def get_user_shift_requests(
+    period_id: int | None = None,
     current_user: user_model.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     return shift_crud.get_user_shift_requests(
         current_user,
-        db
+        db,
+        period_id,
     )
 
 # シフト希望作成
@@ -31,13 +33,15 @@ def get_user_shift_requests(
 )
 def create_shift_request(
     shift_dates: list[shift_schema.ShiftRequestCreate],
+    period_id: int | None = None,
     current_user: user_model.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     return shift_crud.create_shift_request(
         shift_dates,
         current_user,
-        db
+        db,
+        period_id,
     )
 
 # 指定範囲のシフト希望一覧取得
@@ -46,25 +50,27 @@ def create_shift_request(
     response_model = list[shift_schema.DayShiftResponse]
 )
 def get_shift_request(
+    period_id: int | None = None,
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
 ):
     if not current_user.role == "admin":
         raise HTTPException(status_code=403, detail="権限がありません")
 
-    return shift_crud.get_shift_requests(db)
+    return shift_crud.get_shift_requests(db, period_id)
 
 # シフト登録
 @router.put("/shift", response_model = dict)
 def create_day_shift(
     shifts: list[shift_schema.DayShiftCreate],
+    period_id: int | None = None,
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
 ):
     if not current_user.role == "admin":
         raise HTTPException(status_code=403, detail="権限がありません")
     
-    return shift_crud.create_day_shift(shifts, db)
+    return shift_crud.create_day_shift(shifts, db, period_id)
 
 # 指定範囲のシフト一覧取得
 @router.get(
@@ -72,10 +78,11 @@ def create_day_shift(
     response_model = list[shift_schema.DayShiftResponse]
 )
 def get_shifts(
+    period_id: int | None = None,
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
 ):
-    return shift_crud.get_shifts(db)
+    return shift_crud.get_shifts(db, period_id)
 
 # ユーザーごとのシフト確認
 @router.get(
@@ -83,7 +90,8 @@ def get_shifts(
     response_model = shift_schema.UserShiftResponse
 )
 def get_user_shifts(
+    period_id: int | None = None,
     current_user: user_model.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return shift_crud.get_user_shifts(current_user, db)
+    return shift_crud.get_user_shifts(current_user, db, period_id)
