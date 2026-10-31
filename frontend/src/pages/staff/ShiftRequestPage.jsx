@@ -14,6 +14,7 @@ import { getErrorMessage } from "../../utils/error";
 import useUnsavedChanges from "../../hooks/useUnsavedChanges";
 import { useSearchParams } from "react-router-dom";
 import PeriodSelector from "../../components/PeriodSelector";
+import ConflictReload from "../../components/ConflictReload";
 import "./staff.css";
 
 function ShiftRequestPage() {
@@ -28,6 +29,8 @@ function ShiftRequestPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [version, setVersion] = useState(0);
+  const [conflict, setConflict] = useState(false);
 
   useUnsavedChanges(hasUnsavedChanges);
 
@@ -49,6 +52,8 @@ function ShiftRequestPage() {
       ]);
       if (requestId !== loadRequest.current) return;
       setPeriod(periodRes.data);
+      setVersion(requestRes.data.version);
+      setConflict(false);
       setRequests(
         Object.fromEntries(
           requestRes.data.shift_dates.map((item) => [
@@ -106,12 +111,14 @@ function ShiftRequestPage() {
           remark: requests[key]?.remark.trim() || null,
         }));
       const res = await api.put("/shift/request", payload, {
-        params: { period_id: period.id },
+        params: { period_id: period.id, expected_version: version },
       });
+      setVersion(res.data.version);
       setHasUnsavedChanges(false);
       setMessage(res.data.message || "シフト希望を登録しました");
     } catch (err) {
       setError(getErrorMessage(err));
+      setConflict(err.response?.status === 409);
     } finally {
       setSaving(false);
     }
@@ -119,83 +126,86 @@ function ShiftRequestPage() {
 
   return (
     <div className="page">
-      <PageHeader
-        title="シフト希望"
-      />
-      <SuccessPopup
-        message={message}
-        onClose={() => setMessage("")}
-      />
-      {status !== "ready" && (
-        <PeriodSelector periods={periods} period={period} disabled={saving || status === "loading"} />
-      )}
-      {error && status === "ready" && <Notice type="error">{error}</Notice>}
-      {status === "loading" && <Loading label="登録期間を読み込んでいます" />}
-      {status === "empty" && (
-        <Empty
-          icon="休"
-          title="受付中の期間がありません"
-          description="管理者が期間を設定すると、ここに表示されます。"
+      <fieldset className="edit-controls" disabled={saving}>
+        <PageHeader
+          title="シフト希望"
         />
-      )}
-      {status === "error" && <ErrorMessage message={error} onRetry={load} />}
-      {status === "ready" && (
-        <>
-          <div className="request-summary card">
-            <div>
-              <span className="badge badge--primary">受付期間</span>
-              <PeriodSelector periods={periods} period={period} disabled={saving} />
+        <SuccessPopup
+          message={message}
+          onClose={() => setMessage("")}
+        />
+        {status !== "ready" && (
+          <PeriodSelector periods={periods} period={period} disabled={saving || status === "loading"} />
+        )}
+        {error && status === "ready" && <Notice type="error">{error}</Notice>}
+        {conflict && <ConflictReload onReload={load} />}
+        {status === "loading" && <Loading label="登録期間を読み込んでいます" />}
+        {status === "empty" && (
+          <Empty
+            icon="休"
+            title="受付中の期間がありません"
+            description="管理者が期間を設定すると、ここに表示されます。"
+          />
+        )}
+        {status === "error" && <ErrorMessage message={error} onRetry={load} />}
+        {status === "ready" && (
+          <>
+            <div className="request-summary card">
+              <div>
+                <span className="badge badge--primary">受付期間</span>
+                <PeriodSelector periods={periods} period={period} disabled={saving} />
+              </div>
+              <p>
+                {formatDate(period.start, "M/d")} 〜{" "}
+                {formatDate(period.end, "M/d")}
+              </p>
             </div>
-            <p>
-              {formatDate(period.start, "M/d")} 〜{" "}
-              {formatDate(period.end, "M/d")}
-            </p>
-          </div>
-          <div className="request-list">
-            {businessDates.map((key) => {
-              const selected = Boolean(requests[key]?.selected);
-              return (
-                <article
-                  className={`request-day card ${selected ? "request-day--selected" : ""}`}
-                  key={key}
-                >
-                  <button
-                    className="request-day__toggle"
-                    onClick={() => update(key, { selected: !selected })}
-                    aria-pressed={selected}
+            <div className="request-list">
+              {businessDates.map((key) => {
+                const selected = Boolean(requests[key]?.selected);
+                return (
+                  <article
+                    className={`request-day card ${selected ? "request-day--selected" : ""}`}
+                    key={key}
                   >
-                    <span className="request-day__check">
-                      {selected ? "✓" : ""}
-                    </span>
-                    <span>
-                      <strong>{formatDate(key)}</strong>
-                    </span>
-                  </button>
-                  {selected && (
-                    <input
-                      className="input"
-                      value={requests[key]?.remark || ""}
-                      onChange={(e) => update(key, { remark: e.target.value })}
-                      placeholder="備考（時間帯など・任意）"
-                    />
-                  )}
-                </article>
-              );
-            })}
-          </div>
-          <div className="sticky-action">
-            <span>
-              <strong>
-                {businessDates.filter((key) => requests[key]?.selected).length}
-              </strong>
-              日を選択中
-            </span>
-            <button className="button" onClick={submit} disabled={saving}>
-              {saving ? "送信中…" : "希望を登録"}
-            </button>
-          </div>
-        </>
-      )}
+                    <button
+                      className="request-day__toggle"
+                      onClick={() => update(key, { selected: !selected })}
+                      aria-pressed={selected}
+                    >
+                      <span className="request-day__check">
+                        {selected ? "✓" : ""}
+                      </span>
+                      <span>
+                        <strong>{formatDate(key)}</strong>
+                      </span>
+                    </button>
+                    {selected && (
+                      <input
+                        className="input"
+                        value={requests[key]?.remark || ""}
+                        onChange={(e) => update(key, { remark: e.target.value })}
+                        placeholder="備考（時間帯など・任意）"
+                      />
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+            <div className="sticky-action">
+              <span>
+                <strong>
+                  {businessDates.filter((key) => requests[key]?.selected).length}
+                </strong>
+                日を選択中
+              </span>
+              <button className="button" onClick={submit} disabled={saving}>
+                {saving ? "送信中…" : "希望を登録"}
+              </button>
+            </div>
+          </>
+        )}
+      </fieldset>
     </div>
   );
 }

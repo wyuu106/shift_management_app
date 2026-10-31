@@ -12,6 +12,7 @@ def period_response(period):
     return ShiftPeriodResponse(
         id=period.id, name=period.name, start=period.start, end=period.end,
         business_dates=sorted(d.business_date for d in period.business_dates),
+        shift_version=period.shift_version,
     )
 
 

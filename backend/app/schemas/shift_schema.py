@@ -11,6 +11,7 @@ class ShiftRequestResponse(BaseModel):
     user_id: str
     user_name: str
     shift_dates: list[ShiftRequestCreate]
+    version: int
 
 # シフト作成時のシフトメンバー情報
 class ShiftMemberCreate(BaseModel):

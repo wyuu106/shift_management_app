@@ -15,6 +15,7 @@ import { getErrorMessage } from "../../utils/error";
 import useUnsavedChanges from "../../hooks/useUnsavedChanges";
 import { useSearchParams } from "react-router-dom";
 import PeriodSelector from "../../components/PeriodSelector";
+import ConflictReload from "../../components/ConflictReload";
 import "./admin.css";
 
 function AdminShifts() {
@@ -32,6 +33,7 @@ function AdminShifts() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [conflict, setConflict] = useState(false);
 
   useUnsavedChanges(hasUnsavedChanges);
 
@@ -66,6 +68,7 @@ function AdminShifts() {
         );
       });
       setPeriod(periodRes.data);
+      setConflict(false);
       setUsers(usersRes.data.filter((user) => user.role !== "admin"));
       setRequests(requestsRes.data);
       setDays(initial);
@@ -163,11 +166,15 @@ function AdminShifts() {
             })),
         };
       });
-      const res = await api.put("/shift", payload, { params: { period_id: period.id } });
+      const res = await api.put("/shift", payload, {
+        params: { period_id: period.id, expected_version: period.shift_version },
+      });
+      setPeriod((current) => ({ ...current, shift_version: res.data.version }));
       setHasUnsavedChanges(false);
       setMessage(res.data.message || "シフトを登録しました");
     } catch (err) {
       setError(getErrorMessage(err));
+      setConflict(err.response?.status === 409);
     } finally {
       setSaving(false);
     }
@@ -175,64 +182,67 @@ function AdminShifts() {
 
   return (
     <div className="page">
-      <PageHeader
-        title="シフト編集"
-        action={
-          <button
-            className="button button--secondary"
-            onClick={importRequests}
-            disabled={status !== "ready"}
-          >
-            希望を反映
-          </button>
-        }
-      />
-      <SuccessPopup
-        message={message}
-        onClose={() => setMessage("")}
-      />
-      {status !== "ready" && (
-        <PeriodSelector periods={periods} period={period} disabled={saving || status === "loading"} />
-      )}
-      {error && status === "ready" && <Notice type="error">{error}</Notice>}
-      {status === "loading" && <Loading label="シフト情報を読み込んでいます" />}
-      {status === "empty" && (
-        <Empty
-          icon="＋"
-          title="現在のシフト期間はありません"
-          description="期間を選択するか、新しいシフト期間を設定してください。"
-        />
-      )}
-      {status === "error" && <ErrorMessage message={error} onRetry={load} />}
-      {status === "ready" && (
-        <>
-          <div className="admin-shift-calendar">
-            <Calender
-              periodControl={<PeriodSelector periods={periods} period={period} disabled={saving} />}
-              period={period}
-              shifts={calendarShifts}
-              onDateSelect={setOpenDate}
-              selectedDate={openDate}
-              dateActionLabel="シフトを編集"
-            />
-          </div>
-          <ShiftEditSheet
-            date={openDate}
-            users={users}
-            values={days[openDate]}
-            requestedMembers={requestMap.get(openDate)}
-            onUpdateMember={(userId, changes) =>
-              updateMember(openDate, userId, changes)
-            }
-            onClose={() => setOpenDate("")}
-          />
-          <div className="admin-shift-save-action">
-            <button className="button" onClick={save} disabled={saving}>
-              {saving ? "保存中…" : "シフトを登録"}
+      <fieldset className="edit-controls" disabled={saving}>
+        <PageHeader
+          title="シフト編集"
+          action={
+            <button
+              className="button button--secondary"
+              onClick={importRequests}
+              disabled={status !== "ready"}
+            >
+              希望を反映
             </button>
-          </div>
-        </>
-      )}
+          }
+        />
+        <SuccessPopup
+          message={message}
+          onClose={() => setMessage("")}
+        />
+        {status !== "ready" && (
+          <PeriodSelector periods={periods} period={period} disabled={saving || status === "loading"} />
+        )}
+        {error && status === "ready" && <Notice type="error">{error}</Notice>}
+        {conflict && <ConflictReload onReload={load} />}
+        {status === "loading" && <Loading label="シフト情報を読み込んでいます" />}
+        {status === "empty" && (
+          <Empty
+            icon="＋"
+            title="現在のシフト期間はありません"
+            description="期間を選択するか、新しいシフト期間を設定してください。"
+          />
+        )}
+        {status === "error" && <ErrorMessage message={error} onRetry={load} />}
+        {status === "ready" && (
+          <>
+            <div className="admin-shift-calendar">
+              <Calender
+                periodControl={<PeriodSelector periods={periods} period={period} disabled={saving} />}
+                period={period}
+                shifts={calendarShifts}
+                onDateSelect={setOpenDate}
+                selectedDate={openDate}
+                dateActionLabel="シフトを編集"
+              />
+            </div>
+            <ShiftEditSheet
+              date={openDate}
+              users={users}
+              values={days[openDate]}
+              requestedMembers={requestMap.get(openDate)}
+              onUpdateMember={(userId, changes) =>
+                updateMember(openDate, userId, changes)
+              }
+              onClose={() => setOpenDate("")}
+            />
+            <div className="admin-shift-save-action">
+              <button className="button" onClick={save} disabled={saving}>
+                {saving ? "保存中…" : "シフトを登録"}
+              </button>
+            </div>
+          </>
+        )}
+      </fieldset>
     </div>
   );
 }

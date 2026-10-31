@@ -16,3 +16,4 @@ class ShiftPeriodResponse(BaseModel):
     start: date
     end: date
     business_dates: list[date]
+    shift_version: int

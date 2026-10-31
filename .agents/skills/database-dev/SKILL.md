@@ -20,6 +20,7 @@ description: PostgreSQL・SQLAlchemyを使うシフト管理アプリのテー�
 - `name`: String、一意
 - `hashed_password`: String
 - `role`: String、デフォルト`staff`
+- `auth_id`: String(36)、一意。アカウント作成ごとに生成し、JWTと照合する
 
 ### `user_requests`
 
@@ -28,6 +29,7 @@ description: PostgreSQL・SQLAlchemyを使うシフト管理アプリのテー�
 - `name`: String
 - `hashed_password`: String
 - `status`: String、デフォルト`pending`
+- `pending`の`user_id`と`name`にそれぞれ部分一意インデックスを持つ
 
 ### `shift_periods`
 
@@ -35,6 +37,12 @@ description: PostgreSQL・SQLAlchemyを使うシフト管理アプリのテー�
 - `name`: nullable String
 - `start`: Date
 - `end`: Date
+- `shift_version`: Integer、確定シフト保存時に更新するバージョン
+
+### `shift_request_versions`
+
+- `user_id`と`period_id`の複合主キー。本人・期間単位の希望保存バージョンを保持する
+- 両外部キーに`ON DELETE CASCADE`を設定する
 
 ### `business_dates`
 
@@ -67,7 +75,9 @@ description: PostgreSQL・SQLAlchemyを使うシフト管理アプリのテー�
 
 ## 現行データモデルの前提
 
-- アプリケーション上の現在期間は1件。
+- シフト期間は複数保持する。確認・編集の初期表示は日本時間の当日を含む期間、希望提出は終了日が最も遅い期間とする。
+- 重複承認時だけ対象期間全体と営業日を新しい1件へ置き換え、対象期間全体の希望を削除する。確定シフトは保持する。
+- 取得・保存は選択した`period_id`に限定する。保存前のバージョン照合で古い画面からの上書きを防ぐ。
 - 営業日は`business_dates`に存在する日、休業日は期間内で存在しない日。
 - 希望と確定シフトは日付・ユーザー単位の行として保存する。
 - 勤務時間専用カラムはなく、時間帯などは`remark`へ保存する。
@@ -89,6 +99,7 @@ description: PostgreSQL・SQLAlchemyを使うシフト管理アプリのテー�
 - 日付・ユーザー順の安定した表示が必要な取得では`order_by`を指定する。
 - 日別メンバーへの集約は現行どおりCRUDで行い、schemaへ変換して返す。
 - 一括更新は削除と挿入を同一トランザクション内で行う。
+- バージョン照合・データ置換・バージョン更新は、PostgreSQLの更新用ロック内で行う。失敗時はバージョンも含めてロールバックする。
 - スタッフ削除時の希望・シフト削除はDBのcascadeを維持する。
 
 ## 検証
@@ -103,3 +114,4 @@ python -m compileall backend/app
 - CRUD変更時は対象期間外の行が維持されることを確認する。
 - 外部キー変更時は親削除、存在しない親の登録、型一致を確認する。
 - DDLまたはマイグレーションを作成した場合は、適用前後とロールバック手順を記録する。
+- `TEST_DATABASE_URL`を明示した独立したPostgreSQLで、競合・外部キー・ロールバックを検証する。既存運用DBをテスト先にしない。

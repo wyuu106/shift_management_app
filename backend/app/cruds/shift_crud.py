@@ -7,6 +7,19 @@ from app.utils.period_util import get_period, lock_period_updates
 from app.models import shift_model, user_model, period_model
 from app.schemas import shift_schema
 
+
+def check_version(expected, actual):
+    if expected is None:
+        raise HTTPException(status_code=428, detail="最新のデータを読み込んでから保存してください")
+    if expected != actual:
+        raise HTTPException(status_code=409, detail="他の画面で更新されています。最新のデータを読み直してください")
+
+
+def request_version(db, user_id, period_id):
+    return db.get(
+        shift_model.ShiftRequestVersion, (user_id, period_id), populate_existing=True
+    )
+
 # ユーザーごとのシフト希望一覧取得
 def get_user_shift_requests(
         current_user: user_model.User,
@@ -14,6 +27,8 @@ def get_user_shift_requests(
         period_id: int | None = None,
 ) -> shift_schema.ShiftRequestResponse:
     period = get_period(db, period_id, latest=period_id is None)
+    revision = request_version(db, current_user.id, period.id)
+    version = revision.version if revision else 0
 
     stmt = (
         select(
@@ -40,7 +55,8 @@ def get_user_shift_requests(
     return shift_schema.ShiftRequestResponse(
         user_id = current_user.id,
         user_name = current_user.name,
-        shift_dates = shift_dates
+        shift_dates=shift_dates,
+        version=version,
     )
 
 # シフト希望作成
@@ -49,10 +65,13 @@ def create_shift_request(
         current_user: user_model.User,
         db: Session,
         period_id: int | None = None,
+        expected_version: int | None = None,
 ) -> dict:
     try:
         lock_period_updates(db)
         period = get_period(db, period_id, latest=period_id is None)
+        revision = request_version(db, current_user.id, period.id)
+        check_version(expected_version, revision.version if revision else 0)
         allowed = {d.business_date for d in period.business_dates}
         dates = [d.shift_date for d in shift_request_dates]
         if len(dates) != len(set(dates)) or any(d not in allowed for d in dates):
@@ -72,9 +91,16 @@ def create_shift_request(
 
             db.add(db_shift_request)
 
+        if revision is None:
+            revision = shift_model.ShiftRequestVersion(
+                user_id=current_user.id, period_id=period.id, version=0
+            )
+            db.add(revision)
+        revision.version += 1
+        new_version = revision.version
         db.commit()
 
-        return {"message": "シフト希望登録完了"}
+        return {"message": "シフト希望登録完了", "version": new_version}
     
     except Exception:
         db.rollback()
@@ -139,10 +165,12 @@ def create_day_shift(
         shifts: list[shift_schema.DayShiftCreate],
         db: Session,
         period_id: int | None = None,
+        expected_version: int | None = None,
 ) -> dict:
     try:
         lock_period_updates(db)
         period = get_period(db, period_id)
+        check_version(expected_version, period.shift_version)
         allowed = {d.business_date for d in period.business_dates}
         dates = [d.shift_date for d in shifts]
         if len(dates) != len(set(dates)) or any(d not in allowed for d in dates):
@@ -170,9 +198,11 @@ def create_day_shift(
 
                 db.add(db_shift)
 
+        period.shift_version += 1
+        new_version = period.shift_version
         db.commit()
 
-        return {"message": "シフト登録完了"}
+        return {"message": "シフト登録完了", "version": new_version}
     
     except Exception:
         db.rollback()
