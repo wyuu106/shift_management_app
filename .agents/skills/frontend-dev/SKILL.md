@@ -31,6 +31,9 @@ description: React/Vite製シフト管理アプリの画面、コンポーネン
 - 管理者カレンダーだけ`onDateSelect`を渡して編集可能にする。スタッフ側は閲覧専用。
 - 成功通知は`SuccessPopup`、読み込み・空状態・エラーは`Feedback.jsx`の共通部品を使う。
 - シフト編集と希望提出の変更検知には`useUnsavedChanges`を使う。保存成功時のみ未保存状態を解除する。
+- 保存には取得済みの`expected_version`を渡す。409時は編集内容を保持し、明示的な確認後に最新データを読み直す。
+- 保存中は`fieldset disabled`などで編集も無効化し、応答待ちの追加変更を保存済み扱いにしない。
+- モーダルは共通の`Modal`を使い、Tab移動を内部に閉じ込め、閉じた後に元のフォーカスを戻す。
 - 下部ナビと固定アクションが重ならないよう、ページ下部へ十分な余白を確保する。
 
 ## UI方針
@@ -58,6 +61,8 @@ description: React/Vite製シフト管理アプリの画面、コンポーネン
 cd frontend
 npm run lint
 npm run build
+npm test
+npm run test:e2e
 ```
 
 加えて、変更した画面をスマートフォン幅で確認する。特に以下を確認する。

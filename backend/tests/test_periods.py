@@ -18,7 +18,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.db import Base
 from app.models.period_model import ShiftPeriod, BusinessDate
-from app.models.shift_model import Shift, ShiftRequest
+from app.models.shift_model import Shift, ShiftRequest, ShiftRequestVersion
 from app.models.user_model import User
 from app.schemas.period_schema import ShiftPeriodCreate
 from app.schemas.shift_schema import ShiftRequestCreate, DayShiftCreate, ShiftMemberCreate
@@ -34,12 +34,12 @@ class ASGIClient:
     def __init__(self, app):
         self.app = app
 
-    def request(self, method, path, params=None, json=None):
+    def request(self, method, path, params=None, json=None, headers=None, body=None):
         async def run():
             messages = []
 
             async def receive():
-                return {"type": "http.request", "body": jsonlib.dumps(json).encode()}
+                return {"type": "http.request", "body": body if body is not None else jsonlib.dumps(json).encode()}
 
             async def send(message):
                 messages.append(message)
@@ -49,12 +49,14 @@ class ASGIClient:
                 "http_version": "1.1", "method": method,
                 "scheme": "http", "path": path, "root_path": "",
                 "query_string": urlencode(params or {}).encode(),
-                "headers": [(b"content-type", b"application/json")],
+                "headers": [(k.lower().encode(), v.encode()) for k, v in (
+                    headers or {"content-type": "application/json"}
+                ).items()],
                 "server": ("test", 80), "client": ("test", 1234),
             }, receive, send)
             status = next(m["status"] for m in messages if m["type"] == "http.response.start")
-            body = b"".join(m.get("body", b"") for m in messages if m["type"] == "http.response.body")
-            return SimpleNamespace(status_code=status, json=lambda: jsonlib.loads(body))
+            response_body = b"".join(m.get("body", b"") for m in messages if m["type"] == "http.response.body")
+            return SimpleNamespace(status_code=status, json=lambda: jsonlib.loads(response_body))
 
         return asyncio.run(run())
 
@@ -65,11 +67,12 @@ class ASGIClient:
         return self.request("PUT", path, **kwargs)
 
 
-class PeriodTests(unittest.TestCase):
+class DatabaseTestCase(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine(
             "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool,
         )
+        event.listen(self.engine, "connect", lambda conn, _: conn.execute("PRAGMA foreign_keys=ON"))
         Base.metadata.create_all(self.engine)
         self.db = Session(self.engine)
         self.user = User(id="staff", name="スタッフ", hashed_password="test", role="staff")
@@ -97,6 +100,8 @@ class PeriodTests(unittest.TestCase):
         ])
         self.db.commit()
 
+
+class PeriodTests(DatabaseTestCase):
     def test_add_current_latest_and_selected(self):
         first = self.add_period("2026-11-01", "2026-11-15")
         last = self.add_period("2026-12-01", "2026-12-15")
@@ -152,14 +157,14 @@ class PeriodTests(unittest.TestCase):
         second = self.add_period("2026-12-01", "2026-12-15")
         self.seed_shifts(first)
         self.seed_shifts(second)
-        create_shift_request([], self.user, self.db, first.id)
+        create_shift_request([], self.user, self.db, first.id, expected_version=0)
         self.assertEqual(len(get_user_shift_requests(self.user, self.db, second.id).shift_dates), 1)
-        create_day_shift([], self.db, first.id)
+        create_day_shift([], self.db, first.id, expected_version=0)
         self.assertEqual(len(get_shifts(self.db, second.id)[0].members), 1)
         with self.assertRaises(HTTPException):
-            create_shift_request([ShiftRequestCreate(shift_date=second.start)], self.user, self.db, first.id)
+            create_shift_request([ShiftRequestCreate(shift_date=second.start)], self.user, self.db, first.id, 1)
         with self.assertRaises(HTTPException):
-            create_day_shift([DayShiftCreate(shift_date=second.start, members=[])], self.db, first.id)
+            create_day_shift([DayShiftCreate(shift_date=second.start, members=[])], self.db, first.id, 1)
 
     def test_period_failure_rolls_back_deleted_period_dates_and_requests(self):
         original = self.add_period("2026-11-01", "2026-11-15")
@@ -192,11 +197,11 @@ class PeriodTests(unittest.TestCase):
 
         operations = [
             (ShiftRequest, lambda: create_shift_request(
-                [ShiftRequestCreate(shift_date=day)], self.user, self.db, period_id,
+                [ShiftRequestCreate(shift_date=day)], self.user, self.db, period_id, 0,
             )),
             (Shift, lambda: create_day_shift([
                 DayShiftCreate(shift_date=day, members=[ShiftMemberCreate(user_id="staff")]),
-            ], self.db, period_id)),
+            ], self.db, period_id, 0)),
         ]
         for model, operation in operations:
             with self.subTest(model=model.__name__):
@@ -209,6 +214,8 @@ class PeriodTests(unittest.TestCase):
                 rows = self.db.scalars(select(model)).all()
                 self.assertEqual(len(rows), 1)
                 self.assertIsNotNone(rows[0].remark)
+                self.assertEqual(self.db.get(ShiftPeriod, period_id).shift_version, 0)
+                self.assertEqual(self.db.scalars(select(ShiftRequestVersion)).all(), [])
 
     def test_http_contracts_and_permissions(self):
         from fastapi import FastAPI
@@ -227,7 +234,7 @@ class PeriodTests(unittest.TestCase):
                 "start": "2026-11-01", "end": "2026-11-15",
                 "business_dates": ["2026-11-01"],
             }).status_code, 403)
-            self.assertEqual(client.put("/shift", json=[]).status_code, 403)
+            self.assertEqual(client.put("/shift", params={"expected_version": 0}, json=[]).status_code, 403)
             self.assertEqual(client.get("/shift/requests").status_code, 403)
             admin = User(id="admin", name="管理者", role="admin")
             app.dependency_overrides[get_current_user] = lambda: admin
@@ -246,7 +253,7 @@ class PeriodTests(unittest.TestCase):
             self.assertEqual(client.get("/shifts", params={"period_id": period_id}).status_code, 200)
             self.assertEqual(client.get("/period", params={"period_id": 999}).status_code, 404)
             self.assertEqual(client.get("/period", params={"period_id": "invalid"}).status_code, 422)
-            self.assertEqual(client.put("/shift", params={"period_id": period_id}, json=[{
+            self.assertEqual(client.put("/shift", params={"period_id": period_id, "expected_version": 0}, json=[{
                 "shift_date": "2026-12-01", "members": [],
             }]).status_code, 400)
 

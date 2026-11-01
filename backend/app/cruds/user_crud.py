@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, or_
+from sqlalchemy.exc import IntegrityError
 from fastapi import Response, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from app.utils.auth import hash_password, verify_password, create_access_token
@@ -19,7 +20,7 @@ def create_user_request(
                 user_model.User.id == user.id,
                 user_model.User.name == user.name
             )
-        )).scalar_one_or_none()
+        )).scalars().first()
 
     if exist_user:
         raise HTTPException(
@@ -36,7 +37,7 @@ def create_user_request(
                 user_model.UserRequest.name == user.name
             ),
             user_model.UserRequest.status == "pending"
-        )).scalar_one_or_none()
+        )).scalars().first()
 
     if exist_request:
         raise HTTPException(
@@ -56,9 +57,15 @@ def create_user_request(
         hashed_password = hash_password(user.password)
     )
 
-    db.add(db_request)
-    db.commit()
-    db.refresh(db_request)
+    try:
+        db.add(db_request)
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="このIDあるいはユーザー名は申請中です") from exc
+    except Exception:
+        db.rollback()
+        raise
 
     return {"message": "申請完了"}
 
@@ -80,7 +87,7 @@ def approve_user_request(
 ) -> user_schema.UserCreateResponse:
     stmt = select(user_model.UserRequest).where(
         user_model.UserRequest.id == request_id
-    )
+    ).with_for_update()
     db_request = db.execute(stmt).scalar_one_or_none()
 
     if not db_request:
@@ -103,7 +110,7 @@ def approve_user_request(
                 user_model.User.id == db_request.user_id,
                 user_model.User.name == db_request.name
             )
-        )).scalar_one_or_none()
+        )).scalars().first()
 
     if exist_user:
         raise HTTPException(
@@ -117,10 +124,17 @@ def approve_user_request(
         hashed_password = db_request.hashed_password
     )
 
-    db.add(new_user)
-    db_request.status = "approved"
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.add(new_user)
+        db_request.status = "approved"
+        db.commit()
+        db.refresh(new_user)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="このIDあるいはユーザー名は既に使われています") from exc
+    except Exception:
+        db.rollback()
+        raise
 
     return new_user
 
@@ -131,7 +145,7 @@ def reject_user_request(
 ) -> dict:
     stmt = select(user_model.UserRequest).where(
         user_model.UserRequest.id == request_id
-    )
+    ).with_for_update()
     db_request = db.execute(stmt).scalar_one_or_none()
 
     if not db_request:
@@ -146,8 +160,12 @@ def reject_user_request(
             detail="既に処理済みの申請です"
         )
 
-    db_request.status = "rejected"
-    db.commit()
+    try:
+        db_request.status = "rejected"
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
     return {"message": "申請を却下しました"}
 
@@ -155,7 +173,7 @@ def reject_user_request(
 def login(
         form_data: OAuth2PasswordRequestForm,
         db: Session
-) -> dict[str, str, str]:
+) -> dict[str, str]:
     stmt = select(user_model.User).where(
         user_model.User.id == form_data.username
     )
@@ -171,7 +189,7 @@ def login(
         )
 
     access_token = create_access_token(
-        data={"sub": str(db_user.id)}
+        data={"sub": str(db_user.id), "auth_id": db_user.auth_id}
     )
 
     return {

@@ -1,3 +1,5 @@
+import Modal from "./Modal";
+
 export function Loading({ label = "読み込んでいます" }) {
   return (
     <div className="feedback-card" role="status">
@@ -46,31 +48,30 @@ export function SuccessPopup({ message, onClose }) {
   if (!message) return null;
 
   return (
-    <div
-      className="success-popup-layer"
-      role="dialog"
-      aria-modal="true"
-      aria-label="処理完了"
-    >
-      <div className="success-popup">
-        <span className="success-popup__check" aria-hidden="true">
-          ✓
-        </span>
+    <Modal onClose={onClose} label="処理完了">
+      <div
+        className="success-popup-layer"
+      >
+        <div className="success-popup">
+          <span className="success-popup__check" aria-hidden="true">
+            ✓
+          </span>
 
-        <div className="success-popup__content">
-          <strong>完了しました</strong>
-          <p>{message}</p>
+          <div className="success-popup__content">
+            <strong>完了しました</strong>
+            <p>{message}</p>
+          </div>
+
+          <button
+            type="button"
+            className="button button--success success-popup__button"
+            onClick={onClose}
+            autoFocus
+          >
+            戻る
+          </button>
         </div>
-
-        <button
-          type="button"
-          className="button button--success success-popup__button"
-          onClick={onClose}
-          autoFocus
-        >
-          戻る
-        </button>
       </div>
-    </div>
+    </Modal>
   );
 }

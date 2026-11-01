@@ -71,7 +71,8 @@ def get_current_user(
         payload = jwt.decode(
             token,
             SECRET_KEY,
-            algorithms=[ALGORITHM]
+            algorithms=[ALGORITHM],
+            options={"require_exp": True, "require_sub": True},
         )
 
         user_id = payload.get("sub")
@@ -86,7 +87,7 @@ def get_current_user(
         user_model.User.id == user_id
     )).scalar_one_or_none()
 
-    if user is None:
+    if user is None or not payload.get("auth_id") or payload["auth_id"] != user.auth_id:
         raise HTTPException(
             status_code=401,
             detail="認証に失敗しました"

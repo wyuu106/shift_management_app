@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import date
@@ -33,6 +33,7 @@ def get_user_shift_requests(
 )
 def create_shift_request(
     shift_dates: list[shift_schema.ShiftRequestCreate],
+    expected_version: int = Query(..., ge=0),
     period_id: int | None = None,
     current_user: user_model.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -42,6 +43,7 @@ def create_shift_request(
         current_user,
         db,
         period_id,
+        expected_version,
     )
 
 # 指定範囲のシフト希望一覧取得
@@ -63,6 +65,7 @@ def get_shift_request(
 @router.put("/shift", response_model = dict)
 def create_day_shift(
     shifts: list[shift_schema.DayShiftCreate],
+    expected_version: int = Query(..., ge=0),
     period_id: int | None = None,
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
@@ -70,7 +73,7 @@ def create_day_shift(
     if not current_user.role == "admin":
         raise HTTPException(status_code=403, detail="権限がありません")
     
-    return shift_crud.create_day_shift(shifts, db, period_id)
+    return shift_crud.create_day_shift(shifts, db, period_id, expected_version)
 
 # 指定範囲のシフト一覧取得
 @router.get(

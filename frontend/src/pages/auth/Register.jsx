@@ -44,6 +44,11 @@ function Register() {
       return;
     }
 
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(formData.id.trim())) {
+      setErrorMessage("IDは半角英数字・ハイフン・アンダースコアで64文字以内にしてください。");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       await api.post("/register/request", {
@@ -83,6 +88,9 @@ function Register() {
             value={formData.id}
             onChange={handleChange}
             autoComplete="username"
+            maxLength={64}
+            pattern="[A-Za-z0-9_-]+"
+            aria-label="ID（半角英数字・ハイフン・アンダースコア、64文字以内）"
           />
 
           <input

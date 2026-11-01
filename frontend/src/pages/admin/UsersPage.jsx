@@ -44,7 +44,7 @@ function UsersPage() {
     setError("");
 
     try {
-      await api.delete(`/user/${user.id}`);
+      await api.delete(`/user/${encodeURIComponent(user.id)}`);
 
       setUsers((currentUsers) =>
         currentUsers.filter((item) => item.id !== user.id),

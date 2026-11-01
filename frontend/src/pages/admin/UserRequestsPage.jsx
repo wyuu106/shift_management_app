@@ -18,6 +18,7 @@ function UserRequestsPage() {
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [processingId, setProcessingId] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -37,6 +38,7 @@ function UserRequestsPage() {
   }, [load]);
 
   const processRequest = async (request, shouldApprove) => {
+    if (processingId !== null) return;
     setError("");
 
     if (
@@ -47,6 +49,7 @@ function UserRequestsPage() {
     }
 
     try {
+      setProcessingId(request.id);
       if (shouldApprove) {
         await api.post(`/approve/request/${request.id}`);
       } else {
@@ -61,6 +64,8 @@ function UserRequestsPage() {
       );
     } catch (processError) {
       setError(getErrorMessage(processError));
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -101,6 +106,7 @@ function UserRequestsPage() {
                   <button
                     className="button button--secondary button--small"
                     onClick={() => processRequest(request, false)}
+                    disabled={processingId !== null}
                   >
                     却下
                   </button>
@@ -108,6 +114,7 @@ function UserRequestsPage() {
                   <button
                     className="button button--small"
                     onClick={() => processRequest(request, true)}
+                    disabled={processingId !== null}
                   >
                     承認
                   </button>

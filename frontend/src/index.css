@@ -54,6 +54,28 @@ a {
   width: min(100%, 920px);
   margin: 0 auto;
 }
+.edit-controls {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.app-modal {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.app-modal::backdrop {
+  background: transparent;
+}
 .page-header {
   display: flex;
   align-items: flex-end;

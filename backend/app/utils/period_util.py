@@ -20,7 +20,7 @@ def get_period(db: Session, period_id: int | None = None, latest=False) -> Shift
     else:
         today = datetime.now(ZoneInfo("Asia/Tokyo")).date()
         stmt = stmt.where(ShiftPeriod.start <= today, ShiftPeriod.end >= today)
-    period = db.execute(stmt).scalar_one_or_none()
+    period = db.execute(stmt.execution_options(populate_existing=True)).scalar_one_or_none()
 
     if not period:
         raise HTTPException(
