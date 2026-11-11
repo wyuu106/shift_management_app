@@ -152,7 +152,6 @@
 
 | Method | Path | 認証・権限 | 用途 |
 | --- | --- | --- | --- |
-| POST | `/init` | なし | 初回管理者作成 |
 | POST | `/register/request` | なし | ユーザー登録申請 |
 | POST | `/login` | なし | JWT発行 |
 | GET | `/requests` | 管理者 | pendingの登録申請一覧 |
@@ -201,7 +200,8 @@
 ### 7.2 セキュリティ
 
 - パスワードはbcryptでハッシュ化して保存する。
-- JWT署名鍵、DB接続文字列、初期管理者情報は環境変数で管理する。
+- JWT署名鍵、DB接続文字列は環境変数で管理する。
+- 初期管理者はAPIでは作成しない。サーバー上で`backend/`から`python -m scripts.create_admin --id <ID> --name <名前>`を実行して作成する。パスワードは対話入力し、環境変数やコマンド引数に置かない。管理者が既に存在する場合は作成しない。
 - CORS許可元は`ALLOW_ORIGINS`で設定する。
 - 管理者専用操作はバックエンドでロールを検証する。
 
@@ -222,9 +222,6 @@
 | `DATABASE_URL` | PostgreSQL接続文字列 |
 | `SECRET_KEY` | JWT署名鍵 |
 | `ALLOW_ORIGINS` | CORS許可元。複数の場合はカンマ区切り |
-| `ADMIN_ID` | 初期管理者のログインID |
-| `ADMIN_NAME` | 初期管理者名 |
-| `PASSWORD` | 初期管理者パスワード |
 
 ### Frontend
 
