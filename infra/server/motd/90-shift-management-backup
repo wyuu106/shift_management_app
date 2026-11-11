@@ -1,0 +1,3 @@
+#!/bin/sh
+# SSHログイン時にバックアップの異常を表示する
+/bin/bash /opt/shift-management/app/infra/server/backup-status.sh --brief 2>/dev/null || true
