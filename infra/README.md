@@ -81,6 +81,7 @@ ssh ubuntu@<静的IP>
 
 # リポジトリを取得する（非公開リポジトリならデプロイキーを登録しておく）
 # ~/shift-management-app は管理用のチェックアウト。rootで動かすスクリプトとsystemdの設定はここから取り込む
+# sudoで起動するのは必ずこのチェックアウトのスクリプト。ホームは他のユーザーが書き込めない状態（標準は750）のままにする
 # /opt/shift-management/app はアプリ用のチェックアウト（shiftappが所有し、アプリのコードだけに使う）
 git clone <リポジトリURL> ~/shift-management-app
 sudo bash ~/shift-management-app/infra/server/setup.sh
@@ -182,7 +183,9 @@ journalctl -u shift-management -n 50   # ログ確認
 - バックアップのタイマー、失敗の記録、SSHログイン時の表示、復旧は、`/usr/local/lib/shift-management`に配置したスクリプトをrootで実行する。ディレクトリと親ディレクトリはrootだけが書き換えられる。
 - `setup.sh`、`setup-db.sh`、`deploy.sh`は、管理用のチェックアウト（`~/shift-management-app`）から実行する。`/usr/local/lib/shift-management`への配置もここから行う。
 - `/opt/shift-management/app`はshiftapp（APIの実行ユーザー）が書き換えられるため、ここにあるスクリプトをsudoで直接実行しない。APIが乗っ取られたときにroot権限まで奪われるのを防ぐため。
-- `setup.sh`と`deploy.sh`は、管理用のチェックアウト（`.git`を含む）をshiftappが書き換えられる場合は中止する。
+- `sudo`で起動したスクリプトはその時点でrootとして読み込まれるため、安全かどうかは「どのパスを起動するか」で決まる。`setup.sh`・`setup-db.sh`・`deploy.sh`は必ず`~/shift-management-app/infra/server/`から起動する。
+- `setup.sh`と`deploy.sh`は、共通処理の`lib/ops.sh`を読み込む前に、起動したスクリプトと`lib/ops.sh`のパスを`/`までさかのぼって確認する。途中のシンボリックリンクは参照先もたどる。shiftappが所有している、または書き込めるものがあれば、`lib/ops.sh`を読み込まずに中止する。
+- 読み込んだあとは、管理用のチェックアウト全体（`.git`を含む）をshiftappが書き換えられる場合も中止する。
 - `deploy.sh`は、管理用のチェックアウトにコミットされていない変更がある場合や、アプリ用のチェックアウトを同じコミットへ進められない場合は、何も変更せずに中止する。
 
 ## 9. Railwayの停止

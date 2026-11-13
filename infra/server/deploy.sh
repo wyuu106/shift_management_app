@@ -9,10 +9,52 @@
 # 途中まで適用された状態を残さないよう、変更を加える前に確認をすべて済ませる。
 set -euo pipefail
 
+# ops.shを読み込む前の確認。ops.shはまだ信用できないため、ここに直接書く（setup.shと同じ内容）。
+# パスを/までさかのぼり、途中のシンボリックリンクは参照先も同じようにたどって、
+# shiftappが所有している、または書き込めるものがあれば止める
+assert_path_trusted() {
+  local path="$1"
+  local depth="${2:-0}"
+  local app_user=shiftapp
+  local target
+
+  if (( depth > 20 )); then
+    echo "シンボリックリンクが深すぎる: $1" >&2
+    exit 1
+  fi
+  [[ "$path" == /* ]] || path="$PWD/$path"
+
+  while true; do
+    if [[ "$(stat -c %U "$path")" == "$app_user" ]] \
+      || sudo -u "$app_user" test -w "$path" 2>/dev/null; then
+      echo "$app_user が書き換えられる場所にある: $path" >&2
+      echo "管理用のチェックアウト（~/shift-management-app）から実行すること" >&2
+      exit 1
+    fi
+
+    if [[ -L "$path" ]]; then
+      target=$(readlink "$path")
+      [[ "$target" == /* ]] || target="$(dirname "$path")/$target"
+      assert_path_trusted "$target" $((depth + 1))
+    fi
+
+    [[ "$path" == / ]] && break
+    path=$(dirname "$path")
+  done
+}
+
+if [[ $EUID -ne 0 ]]; then
+  echo "sudoで実行してください" >&2
+  exit 1
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+assert_path_trusted "${BASH_SOURCE[0]}"
+assert_path_trusted "$SCRIPT_DIR/lib/ops.sh"
+
 APP_DIR=/opt/shift-management/app
 VENV=/opt/shift-management/venv
 ENV_FILE=/etc/shift-management/backend.env
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 # APP_USER、OPS_DIR、assert_not_writable_by_app、install_ops_filesを定義する
 source "$SCRIPT_DIR/lib/ops.sh"
@@ -28,11 +70,6 @@ ops_git() {
 }
 
 main() {
-  if [[ $EUID -ne 0 ]]; then
-    echo "sudoで実行してください" >&2
-    exit 1
-  fi
-
   echo "== 管理用のチェックアウトを確認"
   assert_not_writable_by_app "$REPO_DIR"
 
