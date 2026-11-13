@@ -22,10 +22,16 @@ else
   # URLにそのまま入れられるよう英数字だけのパスワードにする
   db_password=$(openssl rand -hex 24)
 
-  sudo -u postgres psql -v ON_ERROR_STOP=1 \
-    -v user="$DB_USER" -v password="$db_password" <<'SQL'
-CREATE ROLE :"user" LOGIN PASSWORD :'password';
-SQL
+  # パスワードはコマンド引数に載せず、組み込みのprintfから標準入力で渡す。
+  # 失敗時もSQL文（パスワード入り）がエラー表示やサーバーログに出ないようにする。
+  # -X: .psqlrcのECHO設定などでSQL文が表示されないよう読み込まない
+  printf '%s\n' \
+    '\set VERBOSITY terse' \
+    "\\set password '$db_password'" \
+    "SET log_min_error_statement = 'panic';" \
+    "SET log_statement = 'none';" \
+    "CREATE ROLE :\"user\" LOGIN PASSWORD :'password';" \
+    | sudo -u postgres psql -X -v ON_ERROR_STOP=1 -v user="$DB_USER"
   echo "DBユーザー $DB_USER を作成した"
 fi
 

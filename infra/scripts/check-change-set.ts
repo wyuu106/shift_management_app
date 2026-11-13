@@ -24,6 +24,40 @@ export type Verdict =
 
 const NO_CHANGES_PATTERN = /didn't contain changes|No updates are to be performed/;
 
+// Import・Dynamic などこのデプロイで想定していない操作は、判定できないものとして扱う
+const KNOWN_ACTIONS = ['Add', 'Modify', 'Remove'];
+const KNOWN_REPLACEMENTS = ['True', 'False', 'Conditional'];
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
+}
+
+// 安全かどうかの判定に必要な情報が欠けている・想定外の値なら、その内容を返す
+function findUnclassifiable(resource: ResourceChange): string[] {
+  const problems: string[] = [];
+
+  if (!isNonEmptyString(resource.LogicalResourceId)) {
+    problems.push('論理IDなし');
+  }
+  if (!isNonEmptyString(resource.ResourceType)) {
+    problems.push('リソースの種類なし');
+  }
+  if (!KNOWN_ACTIONS.includes(resource.Action as string)) {
+    problems.push(`未知の操作: ${resource.Action ?? 'なし'}`);
+  }
+
+  if (resource.Replacement === undefined) {
+    // 変更操作は置き換えの有無がわからないと安全か判断できない
+    if (resource.Action === 'Modify') {
+      problems.push('置き換えの有無が不明');
+    }
+  } else if (!KNOWN_REPLACEMENTS.includes(resource.Replacement)) {
+    problems.push(`未知の置き換え値: ${resource.Replacement}`);
+  }
+
+  return problems;
+}
+
 export function evaluateChangeSet(changeSet: ChangeSet): Verdict {
   if (changeSet.Status === 'FAILED') {
     if (NO_CHANGES_PATTERN.test(changeSet.StatusReason ?? '')) {
@@ -36,18 +70,30 @@ export function evaluateChangeSet(changeSet: ChangeSet): Verdict {
     return { kind: 'blocked', reasons: [`変更セットの状態が想定外: ${changeSet.Status}`] };
   }
 
+  // 変更なしならAWSはFAILEDを返す。CREATE_COMPLETEで一覧がないのは中身を確認できない状態
+  if (!Array.isArray(changeSet.Changes) || changeSet.Changes.length === 0) {
+    return { kind: 'blocked', reasons: ['変更一覧がないため判定できない'] };
+  }
+
   const changes: string[] = [];
   const reasons: string[] = [];
 
-  for (const change of changeSet.Changes ?? []) {
-    const resource = change.ResourceChange;
+  for (const change of changeSet.Changes) {
+    const resource = change?.ResourceChange;
     // 中身を確認できない項目は安全と判定できないため止める
     if (!resource) {
-      reasons.push(`判定できない変更(Type: ${change.Type ?? '不明'})`);
+      reasons.push(`判定できない変更(Type: ${change?.Type ?? '不明'})`);
       continue;
     }
 
     const label = `${resource.Action} ${resource.LogicalResourceId} (${resource.ResourceType})`;
+
+    const problems = findUnclassifiable(resource);
+    if (problems.length > 0) {
+      reasons.push(`判定できない変更(${problems.join('、')}): ${label}`);
+      continue;
+    }
+
     changes.push(label);
 
     // Conditional は「値によっては置き換え」。安全側に倒して止める

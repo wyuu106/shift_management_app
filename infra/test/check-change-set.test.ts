@@ -1,6 +1,6 @@
 import { ChangeSet, evaluateChangeSet } from '../scripts/check-change-set';
 
-function changeSet(...changes: Array<Record<string, string>>): ChangeSet {
+function changeSet(...changes: Array<Record<string, string | undefined>>): ChangeSet {
   return {
     Status: 'CREATE_COMPLETE',
     Changes: changes.map((resourceChange) => ({
@@ -62,6 +62,49 @@ test('ResourceChangeのない項目だけの変更セットは止める', () => 
     Status: 'CREATE_COMPLETE',
     Changes: [{ Type: 'Unknown' }],
   });
+
+  expect(verdict.kind).toBe('blocked');
+});
+
+test('CREATE_COMPLETEで変更一覧がない変更セットは止める', () => {
+  const verdict = evaluateChangeSet({ Status: 'CREATE_COMPLETE' });
+
+  expect(verdict.kind).toBe('blocked');
+});
+
+test('CREATE_COMPLETEで変更一覧が空の変更セットは止める', () => {
+  const verdict = evaluateChangeSet({ Status: 'CREATE_COMPLETE', Changes: [] });
+
+  expect(verdict.kind).toBe('blocked');
+});
+
+test.each([
+  ['操作', { Action: undefined, Replacement: 'False' }],
+  ['論理ID', { Action: 'Modify', Replacement: 'False', LogicalResourceId: undefined }],
+  ['リソースの種類', { Action: 'Modify', Replacement: 'False', ResourceType: undefined }],
+  ['変更操作の置き換え有無', { Action: 'Modify', Replacement: undefined }],
+])('%sが欠けた項目は止める', (_name, resourceChange) => {
+  const verdict = evaluateChangeSet(changeSet(resourceChange));
+
+  expect(verdict.kind).toBe('blocked');
+});
+
+test.each([
+  ['操作', { Action: 'Dynamic' }],
+  ['操作', { Action: 'Import' }],
+  ['置き換え値', { Action: 'Modify', Replacement: 'Maybe' }],
+  ['置き換え値', { Action: 'Add', Replacement: 'Unknown' }],
+])('未知の%s(%o)は止める', (_name, resourceChange) => {
+  const verdict = evaluateChangeSet(changeSet(resourceChange));
+
+  expect(verdict.kind).toBe('blocked');
+});
+
+test('安全な変更と判定できない項目が混ざっていたら止める', () => {
+  const verdict = evaluateChangeSet(changeSet(
+    { Action: 'Modify', Replacement: 'False', LogicalResourceId: 'StaticIp' },
+    { Action: 'Modify', Replacement: undefined },
+  ));
 
   expect(verdict.kind).toBe('blocked');
 });
