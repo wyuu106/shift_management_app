@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # バックアップの状態を表示する。最後の外部保存から26時間以上たっていれば異常とする。
+# root管理のディレクトリ（/usr/local/lib/shift-management）へsetup.sh・deploy.shが配置したものを実行する。
 # 使い方:
-#   sudo bash backup-status.sh                  状態と直近のログを表示（異常なら終了コード1）
-#   sudo bash backup-status.sh --brief          1行だけ表示（SSHログイン時のメッセージ用）
-#   sudo bash backup-status.sh --record-failure 失敗を記録（systemdのOnFailureから呼ばれる）
+#   sudo bash /usr/local/lib/shift-management/backup-status.sh                  状態と直近のログを表示（異常なら終了コード1）
+#   sudo bash /usr/local/lib/shift-management/backup-status.sh --brief          1行だけ表示（SSHログイン時のメッセージ用）
+#   sudo bash /usr/local/lib/shift-management/backup-status.sh --record-failure 失敗を記録（systemdのOnFailureから呼ばれる）
 set -euo pipefail
 
 STATE_DIR=/var/lib/shift-management
@@ -48,7 +49,7 @@ fi
 if [[ "$mode" == "--brief" ]]; then
   if [[ "$status" == "NG" ]]; then
     echo "[警告] DBバックアップ異常: $message"
-    echo "       sudo bash /opt/shift-management/app/infra/server/backup-status.sh で詳細を確認"
+    echo "       sudo bash /usr/local/lib/shift-management/backup-status.sh で詳細を確認"
   fi
   exit 0
 fi

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # DBをバックアップし、Lightsailバケットへ送る。systemdタイマーから毎日実行する。
 # 失敗するとsystemdがshift-management-backup-failure.serviceを起動して記録する。
-# 使い方: sudo bash backup-db.sh [--local-only]
+# 使い方: sudo bash /usr/local/lib/shift-management/backup-db.sh [--local-only]
+# root管理のディレクトリへsetup.sh・deploy.shが配置したものを実行する。
 set -euo pipefail
 
 # systemdから実行したときもsnapで入れたawsを見つけられるようにする

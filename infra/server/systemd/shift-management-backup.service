@@ -6,4 +6,4 @@ OnFailure=shift-management-backup-failure.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash /opt/shift-management/app/infra/server/backup-db.sh
+ExecStart=/bin/bash /usr/local/lib/shift-management/backup-db.sh

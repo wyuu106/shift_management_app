@@ -41,7 +41,9 @@ export function evaluateChangeSet(changeSet: ChangeSet): Verdict {
 
   for (const change of changeSet.Changes ?? []) {
     const resource = change.ResourceChange;
+    // 中身を確認できない項目は安全と判定できないため止める
     if (!resource) {
+      reasons.push(`判定できない変更(Type: ${change.Type ?? '不明'})`);
       continue;
     }
 

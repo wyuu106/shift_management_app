@@ -47,6 +47,25 @@ test('安全な変更と危険な変更が混ざっていたら止める', () =>
   expect(verdict.kind).toBe('blocked');
 });
 
+test('安全な変更とResourceChangeのない項目が混ざっていたら止める', () => {
+  const safe = changeSet({ Action: 'Modify', Replacement: 'False' });
+  const verdict = evaluateChangeSet({
+    ...safe,
+    Changes: [...(safe.Changes ?? []), { Type: 'Unknown' }],
+  });
+
+  expect(verdict.kind).toBe('blocked');
+});
+
+test('ResourceChangeのない項目だけの変更セットは止める', () => {
+  const verdict = evaluateChangeSet({
+    Status: 'CREATE_COMPLETE',
+    Changes: [{ Type: 'Unknown' }],
+  });
+
+  expect(verdict.kind).toBe('blocked');
+});
+
 test('変更なしで失敗した変更セットは「変更なし」と判定する', () => {
   const verdict = evaluateChangeSet({
     Status: 'FAILED',

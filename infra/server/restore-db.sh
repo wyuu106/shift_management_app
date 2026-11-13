@@ -2,9 +2,10 @@
 # バックアップからDBを復旧する。現在のDBの中身はバックアップの内容で上書きされる。
 # 復元の成否にかかわらず、DBの正常性を確認できたときだけアプリを起動する。
 # 確認できない場合はアプリを停止したままにする。
+# root管理のディレクトリへsetup.sh・deploy.shが配置したものを実行する。
 # 使い方:
-#   sudo bash restore-db.sh /var/backups/shift-management/shift_management_20261112-030000.dump
-#   sudo bash restore-db.sh s3://<バケット名>/db/shift_management_20261112-030000.dump
+#   sudo bash /usr/local/lib/shift-management/restore-db.sh /var/backups/shift-management/shift_management_20261112-030000.dump
+#   sudo bash /usr/local/lib/shift-management/restore-db.sh s3://<バケット名>/db/shift_management_20261112-030000.dump
 set -euo pipefail
 
 export PATH="$PATH:/snap/bin"
@@ -16,7 +17,8 @@ ENV_FILE=/etc/shift-management/backend.env
 DB_NAME=shift_management
 DB_USER=shift_app
 BACKUP_ENV=/etc/shift-management/backup.env
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# rootで実行するスクリプトの置き場。親ディレクトリも含めてrootだけが書き換えられる
+OPS_DIR=/usr/local/lib/shift-management
 TABLES=(users user_requests shift_periods business_dates shift_request_versions shift_requests shifts)
 
 app_stopped=false
@@ -66,6 +68,9 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 source_path="${1:?復旧するバックアップファイルを指定してください}"
+
+# ダンプには全データが入っているため、作成した時点から本人以外は読めないようにする
+umask 077
 work_dir=$(mktemp -d)
 trap on_exit EXIT
 
@@ -77,8 +82,11 @@ if [[ "$source_path" == s3://* ]]; then
 else
   cp "$source_path" "$work_dir/restore.dump"
 fi
-chmod 644 "$work_dir/restore.dump"
-chmod 755 "$work_dir"
+
+# pg_restoreはpostgresとして動くため、postgresだけが読めるようにする（ディレクトリ700、ダンプ600）
+chown postgres:postgres "$work_dir" "$work_dir/restore.dump"
+chmod 700 "$work_dir"
+chmod 600 "$work_dir/restore.dump"
 
 # 中身を読めるか先に確認する
 sudo -u postgres pg_restore --list "$work_dir/restore.dump" > /dev/null
@@ -91,7 +99,7 @@ if [[ "$answer" != "$DB_NAME" ]]; then
 fi
 
 echo "== 念のため現在のDBを保存"
-bash "$SCRIPT_DIR/backup-db.sh" --local-only
+bash "$OPS_DIR/backup-db.sh" --local-only
 
 echo "== アプリを止めて復元"
 systemctl stop shift-management

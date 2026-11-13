@@ -19,6 +19,7 @@ infra/
     ├── restore-db.sh             DB復旧
     ├── backup-status.sh          バックアップの状態確認・失敗の記録
     ├── backup.env.example        バックアップ用の環境変数の雛形
+    ├── lib/ops.sh                setup.sh・deploy.sh共通の確認と配置処理
     ├── systemd/                  API常駐、バックアップのタイマーと失敗時の記録
     ├── motd/                     SSHログイン時のバックアップ異常表示
     └── nginx/                    リバースプロキシ設定
@@ -79,13 +80,13 @@ bash scripts/safe-deploy.sh <自宅のIP>/32
 ssh ubuntu@<静的IP>
 
 # リポジトリを取得する（非公開リポジトリならデプロイキーを登録しておく）
-# setup.shを動かすために一度ホームへ取得し、アプリユーザー作成後に正式な場所へ取得し直す
+# ~/shift-management-app は管理用のチェックアウト。rootで動かすスクリプトとsystemdの設定はここから取り込む
+# /opt/shift-management/app はアプリ用のチェックアウト（shiftappが所有し、アプリのコードだけに使う）
 git clone <リポジトリURL> ~/shift-management-app
 sudo bash ~/shift-management-app/infra/server/setup.sh
 sudo -u shiftapp git -C /opt/shift-management clone <リポジトリURL> app
-rm -rf ~/shift-management-app
 
-sudo bash /opt/shift-management/app/infra/server/setup-db.sh
+sudo bash ~/shift-management-app/infra/server/setup-db.sh
 sudo nano /etc/shift-management/backend.env   # ALLOW_ORIGINSをVercelのURLにする
 sudo nano /etc/nginx/sites-available/shift-management   # server_nameをドメインにする
 sudo nginx -t && sudo systemctl reload nginx
@@ -95,7 +96,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ```bash
 # 依存導入、alembic upgrade head、起動、起動確認まで行う
-sudo bash /opt/shift-management/app/infra/server/deploy.sh
+sudo bash ~/shift-management-app/infra/server/deploy.sh
 
 # 初期管理者を作る（パスワードは対話入力）
 # /opt/shift-management はshiftapp以外は入れないため、cdもshiftappとして行う
@@ -128,12 +129,12 @@ aws lightsail create-bucket-access-key \
 
 ```bash
 # サーバーで設定する
-sudo install -m 600 /opt/shift-management/app/infra/server/backup.env.example /etc/shift-management/backup.env
+sudo install -m 600 ~/shift-management-app/infra/server/backup.env.example /etc/shift-management/backup.env
 sudo nano /etc/shift-management/backup.env
 
-sudo bash /opt/shift-management/app/infra/server/backup-db.sh   # 手動で1回試す
+sudo bash /usr/local/lib/shift-management/backup-db.sh   # 手動で1回試す
 sudo systemctl enable --now shift-management-backup.timer
-sudo bash /opt/shift-management/app/infra/server/backup-status.sh   # 状態OKになることを確認
+sudo bash /usr/local/lib/shift-management/backup-status.sh   # 状態OKになることを確認
 ```
 
 ### 失敗の検知とログ
@@ -144,9 +145,9 @@ sudo bash /opt/shift-management/app/infra/server/backup-status.sh   # 状態OK�
 - ログはディスクに保存されるので、再起動後も確認できる。
 
 ```bash
-sudo bash /opt/shift-management/app/infra/server/backup-status.sh   # 状態、次回実行、直近のログ
-journalctl -u shift-management-backup -n 50                        # バックアップのログ
-journalctl -t shift-management-backup -p err                        # 失敗の記録だけ
+sudo bash /usr/local/lib/shift-management/backup-status.sh   # 状態、次回実行、直近のログ
+journalctl -u shift-management-backup -n 50                  # バックアップのログ
+journalctl -t shift-management-backup -p err                  # 失敗の記録だけ
 ```
 
 ## 7. 復旧の練習
@@ -156,7 +157,7 @@ journalctl -t shift-management-backup -p err                        # 失敗の�
 ```bash
 sudo bash -c 'source /etc/shift-management/backup.env && aws s3 ls "s3://$BACKUP_BUCKET/db/"'
 
-sudo bash /opt/shift-management/app/infra/server/restore-db.sh \
+sudo bash /usr/local/lib/shift-management/restore-db.sh \
   "s3://shift-management-backup-<アカウントID>/db/<ファイル名>"
 ```
 
@@ -169,9 +170,20 @@ sudo bash /opt/shift-management/app/infra/server/restore-db.sh \
 ## 8. 日常の更新
 
 ```bash
-sudo bash /opt/shift-management/app/infra/server/deploy.sh
+git -C ~/shift-management-app pull --ff-only
+sudo bash ~/shift-management-app/infra/server/deploy.sh
 journalctl -u shift-management -n 50   # ログ確認
 ```
+
+`deploy.sh`は、アプリ用のチェックアウトを管理用のチェックアウトと同じコミットにそろえる。そのあと、管理用のチェックアウトから`backup-db.sh`などを`/usr/local/lib/shift-management`へ、systemdの設定を`/etc/systemd/system`へ配置し直してから、アプリを更新する。
+
+### rootで動かすスクリプトの置き場
+
+- バックアップのタイマー、失敗の記録、SSHログイン時の表示、復旧は、`/usr/local/lib/shift-management`に配置したスクリプトをrootで実行する。ディレクトリと親ディレクトリはrootだけが書き換えられる。
+- `setup.sh`、`setup-db.sh`、`deploy.sh`は、管理用のチェックアウト（`~/shift-management-app`）から実行する。`/usr/local/lib/shift-management`への配置もここから行う。
+- `/opt/shift-management/app`はshiftapp（APIの実行ユーザー）が書き換えられるため、ここにあるスクリプトをsudoで直接実行しない。APIが乗っ取られたときにroot権限まで奪われるのを防ぐため。
+- `setup.sh`と`deploy.sh`は、管理用のチェックアウト（`.git`を含む）をshiftappが書き換えられる場合は中止する。
+- `deploy.sh`は、管理用のチェックアウトにコミットされていない変更がある場合や、アプリ用のチェックアウトを同じコミットへ進められない場合は、何も変更せずに中止する。
 
 ## 9. Railwayの停止
 
