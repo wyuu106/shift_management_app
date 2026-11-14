@@ -6,7 +6,7 @@
 # 使い方: bash scripts/safe-deploy.sh <管理者IP>/32
 set -euo pipefail
 
-PROFILE=restaurant
+PROFILE=yumeri
 REGION=ap-southeast-2
 STACK=ShiftManagementStack
 CHANGE_SET="safe-deploy-$(date +%Y%m%d%H%M%S)"
