@@ -15,6 +15,7 @@
 - 共通要件: `docs/requirements/README.md`
 - 管理者要件: `docs/requirements/admin.md`
 - スタッフ要件: `docs/requirements/staff.md`
+- インフラ要件: `docs/infrastructure/`
 - ディレクトリ構成: `docs/architecture/directory-structure.md`
 - フロントエンド開発: `.agents/skills/frontend-dev/SKILL.md`
 - バックエンド開発: `.agents/skills/backend-dev/SKILL.md`

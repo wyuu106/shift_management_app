@@ -1,21 +1,15 @@
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-from fastapi import HTTPException
-from app.utils.auth import hash_password
-from app.db import get_db, Base, engine
-from app.models.user_model import User
 from app.routers import (
     user_router,
     period_router,
     shift_router
 )
 
-Base.metadata.create_all(bind=engine)
-
+# テーブルの作成・変更はAlembic（backend/alembic/）で行う。起動時には作成しない。
+# 初期管理者はAPIではなく scripts/create_admin.py で作成する。
 app = FastAPI()
 
 # .envを読み込む
@@ -30,32 +24,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 初期化（admin作成）API
-@app.post("/init", response_model = dict)
-def init(db: Session = Depends(get_db)) -> dict:
-    exist_admin = db.execute(
-        select(User).where(User.role == "admin")
-    ).scalar_one_or_none()
-
-    if exist_admin:
-        raise HTTPException(status_code=400, detail="登録済みです")
-
-    admin_id = os.getenv("ADMIN_ID")
-    admin_name = os.getenv("ADMIN_NAME")
-    password = os.getenv("PASSWORD")
-    admin = User(
-        id = admin_id,
-        name = admin_name,
-        hashed_password = hash_password(password),
-        role = "admin"
-    )
-
-    db.add(admin)
-    db.commit()
-    db.refresh(admin)
-
-    return {"message": "管理者登録"}
 
 app.include_router(user_router.router)
 app.include_router(period_router.router)

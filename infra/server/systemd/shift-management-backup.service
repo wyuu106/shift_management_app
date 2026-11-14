@@ -1,0 +1,9 @@
+[Unit]
+Description=Shift management DB backup
+After=postgresql.service
+# 失敗したら記録用のユニットを起動する。ログは journalctl -u shift-management-backup で見る
+OnFailure=shift-management-backup-failure.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /usr/local/lib/shift-management/backup-db.sh

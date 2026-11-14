@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily shift management DB backup
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Asia/Tokyo
+# サーバーが止まっていて実行を逃した場合は、起動後に実行する
+Persistent=true
+
+[Install]
+WantedBy=timers.target

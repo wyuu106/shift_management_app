@@ -1,0 +1,12 @@
+#!/bin/sh
+# SSHログイン時にバックアップの異常を表示する
+STATUS_SCRIPT=/usr/local/lib/shift-management/backup-status.sh
+
+# 状態を確認できないときも黙らず、確認できないことを表示する
+if [ ! -f "$STATUS_SCRIPT" ]; then
+  echo "[警告] $STATUS_SCRIPT がないため、DBバックアップの状態を確認できない"
+  echo "       管理用のチェックアウトから setup.sh か deploy.sh を実行すること"
+elif ! /bin/bash "$STATUS_SCRIPT" --brief 2>/dev/null; then
+  echo "[警告] DBバックアップの状態を確認できない"
+  echo "       sudo bash $STATUS_SCRIPT で詳細を確認"
+fi

@@ -1,0 +1,9 @@
+- generic [ref=e5]:
+  - heading "ログイン" [level=2] [ref=e6]
+  - generic [ref=e7]:
+    - textbox "ログインID" [ref=e8]:
+      - /placeholder: ID
+    - textbox "パスワード" [ref=e9]
+    - button "ログイン" [ref=e10] [cursor=pointer]
+  - link "新規登録はこちら" [ref=e11] [cursor=pointer]:
+    - /url: /register

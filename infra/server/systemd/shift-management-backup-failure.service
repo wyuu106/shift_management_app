@@ -1,0 +1,6 @@
+[Unit]
+Description=Record shift management DB backup failure
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /usr/local/lib/shift-management/backup-status.sh --record-failure

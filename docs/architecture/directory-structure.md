@@ -9,6 +9,11 @@ shift_management_app/
 ├── backend/
 │   ├── .env.example
 │   ├── requirements.txt
+│   ├── alembic.ini
+│   ├── alembic/
+│   │   └── versions/
+│   ├── scripts/
+│   ├── tests/
 │   └── app/
 │       ├── main.py
 │       ├── db.py
@@ -34,9 +39,16 @@ shift_management_app/
 │       │   ├── admin/
 │       │   └── staff/
 │       └── utils/
+├── infra/
+│   ├── bin/
+│   ├── lib/
+│   ├── scripts/
+│   ├── test/
+│   └── server/
 ├── docs/
 │   ├── requirements/
-│   └── architecture/
+│   ├── architecture/
+│   └── infrastructure/
 ├── .agents/
 │   └── skills/
 └── images/
@@ -47,9 +59,7 @@ shift_management_app/
 ### `backend/app/main.py`
 
 - FastAPIアプリケーション生成
-- SQLAlchemyメタデータによるテーブル作成
 - CORS設定
-- 初期管理者作成API
 - 各routerの登録
 
 ### `backend/app/db.py`
@@ -57,6 +67,20 @@ shift_management_app/
 - `DATABASE_URL`の読み込み
 - SQLAlchemy EngineとSessionの生成
 - FastAPI用`get_db`依存関数
+
+### `backend/alembic/`
+
+Alembicによるスキーマのマイグレーション。テーブルの作成・変更はここで行い、アプリ起動時には作成しない。
+
+- `env.py`: `app.db`の接続先とモデルのメタデータを読み込む
+- `versions/`: マイグレーションファイル。`0001_initial_schema.py`が初期スキーマ
+
+### `backend/scripts/`
+
+運用時に手動で実行するスクリプト。
+
+- `create_admin.py`: 初期管理者の作成。パスワードは対話入力
+- `migrate_review.py`: 旧運用DB向けの移行。新環境では使わない
 
 ### `backend/app/routers/`
 
@@ -102,6 +126,14 @@ SQLAlchemyによるPostgreSQLテーブル定義。
 
 - `auth.py`: パスワードハッシュ、検証、JWT生成・復号、現在ユーザー取得
 - `period_util.py`: 現在のシフト期間取得と404処理
+
+### `infra/`
+
+AWS Lightsail上の本番環境。詳細は`docs/infrastructure/architecture.md`と`infra/README.md`。
+
+- `lib/`: CDKスタックと設定値（インスタンス、静的IP、ファイアウォール、バックアップ用バケット）
+- `scripts/`: 置き換え・削除がないことを確認してから適用するデプロイスクリプト
+- `server/`: サーバー内のセットアップ、デプロイ、バックアップ・復旧・状態確認スクリプトとsystemd・Nginx設定
 
 ## 3. フロントエンド
 
@@ -196,5 +228,6 @@ SQLAlchemy model / PostgreSQL
 - `backend/.env`、`frontend/.env`: ローカル設定。Git管理しない。
 - `.env.example`: 必要な環境変数の雛形。
 - `frontend/dist/`: Viteのビルド生成物。直接編集しない。
-- `frontend/node_modules/`: npm依存。直接編集しない。
+- `frontend/node_modules/`、`infra/node_modules/`: npm依存。直接編集しない。
+- `infra/cdk.out/`: CDKの生成物。Git管理しない。
 - `images/`: READMEで使用する画面キャプチャ。
