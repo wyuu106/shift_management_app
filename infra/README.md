@@ -44,11 +44,11 @@ npx cdk synth -c adminCidr=<自宅のIP>/32
 ### 事前確認
 
 ```bash
-aws sts get-caller-identity --profile restaurant
-aws lightsail get-regions --include-availability-zones --profile restaurant --region ap-southeast-2
-aws lightsail get-bundles --profile restaurant --region ap-southeast-2 \
+aws sts get-caller-identity --profile yumeri
+aws lightsail get-regions --include-availability-zones --profile yumeri --region ap-southeast-2
+aws lightsail get-bundles --profile yumeri --region ap-southeast-2 \
   --query "bundles[?bundleId=='small_3_2']"
-aws lightsail get-bucket-bundles --profile restaurant --region ap-southeast-2
+aws lightsail get-bucket-bundles --profile yumeri --region ap-southeast-2
 ```
 
 SSHキーペアを使う場合は、Lightsailコンソールで作成するか公開鍵をインポートし、その名前を**初回デプロイ前に**`lib/config.ts`の`keyPairName`へ書く。
@@ -59,7 +59,7 @@ SSHキーペアを使う場合は、Lightsailコンソールで作成するか�
 `cdk deploy`は直接使わず、`scripts/safe-deploy.sh`で適用する。
 
 ```bash
-npx cdk diff --profile restaurant -c adminCidr=<自宅のIP>/32   # 差分を目で確認
+npx cdk diff --profile yumeri -c adminCidr=<自宅のIP>/32   # 差分を目で確認
 bash scripts/safe-deploy.sh <自宅のIP>/32
 ```
 
@@ -125,7 +125,7 @@ Vercelの環境変数`VITE_API_URL`を`https://api.<ドメイン>`に変更し�
 # 手元のPCで、バケット用のアクセスキーを発行する（シークレットはこのときしか表示されない）
 aws lightsail create-bucket-access-key \
   --bucket-name shift-management-backup-<アカウントID> \
-  --profile restaurant --region ap-southeast-2
+  --profile yumeri --region ap-southeast-2
 ```
 
 ```bash

@@ -28,7 +28,7 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 | --- | --- |
 | リージョン | `ap-southeast-2`（シドニー） |
 | アベイラビリティーゾーン | `ap-southeast-2a` |
-| AWS CLIプロファイル | `restaurant` |
+| AWS CLIプロファイル | `yumeri` |
 | CDKスタック | `ShiftManagementStack` |
 | インスタンス | `shift-management-server` / `ubuntu_24_04` / `small_3_2`（2GB RAM） |
 | 静的IP | `shift-management-ip` |
@@ -163,5 +163,5 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 
 - `ap-southeast-2`でLightsailを使えること、`small_3_2`と`small_1_0`が存在することはまだ確認していない。デプロイ前に`aws lightsail get-bundles`と`aws lightsail get-bucket-bundles`で確認する。
 - APIに使う独自ドメインは未定。決まるまで本番切り替えはできない。
-- 学習用の`default`プロファイルと既存のEC2・RDS・VPCは使わない。CDKは必ず`--profile restaurant`で実行する。
+- 学習用の`default`プロファイルと既存のEC2・RDS・VPCは使わない。CDKは必ず`--profile yumeri`で実行する。
 - 組織のSCP（AWS Organizationsのアクセス制限）で操作が拒否される場合は、拒否されたアクションを確認してから対応を決める。
