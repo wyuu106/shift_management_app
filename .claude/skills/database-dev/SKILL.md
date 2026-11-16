@@ -7,9 +7,14 @@ description: PostgreSQL・SQLAlchemyを使うシフト管理アプリのテー�
 
 ## 参照先
 
-- データ要件: `docs/requirements/README.md`
-- 構成: `docs/architecture/directory-structure.md`
+作業前に対象機能の要件を確認する。
+
+- テーブルと制約: `docs/requirements/data.md`
+- 期間の上書きで削除・保持するデータ: `docs/requirements/period.md`
+- バージョンとトランザクション: `docs/requirements/api.md`
+- ファイルの置き場所: `docs/architecture/directory-structure.md`
 - SQLAlchemyモデル: `backend/app/models/`
+- マイグレーション: `backend/alembic/versions/`
 - DB操作: `backend/app/cruds/`
 
 ## 現行テーブル
@@ -87,10 +92,17 @@ description: PostgreSQL・SQLAlchemyを使うシフト管理アプリのテー�
 
 1. modelだけでなくschema、CRUD、router、フロント利用箇所を確認する。
 2. 既存データがある前提で、型変換、NULL、重複、外部キーへの影響を確認する。
-3. `Base.metadata.create_all()`は既存テーブルの型や制約を更新しないことを前提にする。
-4. 既存DBの変更には明示的なDDLまたはマイグレーションが必要。
+3. スキーマはAlembicで管理する。アプリ起動時の`Base.metadata.create_all()`は廃止済みで、使わない。
+4. modelを変更したら、`backend/alembic/versions/`にマイグレーションファイルを追加する。
+
+   ```bash
+   cd backend
+   alembic revision --autogenerate -m "変更内容"
+   ```
+
+   自動生成された内容は必ず確認する。型変更やデータの補完は自動では正しく生成されないことがある。
 5. テーブル削除や全データ削除を、ユーザーの許可なく実行しない。
-6. PostgreSQLでDDLを適用する前に、対象テーブル、制約、データ件数を読み取り確認する。
+6. マイグレーションを適用する前に、対象テーブル、制約、データ件数を読み取り確認する。
 
 ## クエリ・更新方針
 
@@ -113,5 +125,6 @@ python -m compileall backend/app
 - model変更時はPostgreSQL上の実型と制約を確認する。
 - CRUD変更時は対象期間外の行が維持されることを確認する。
 - 外部キー変更時は親削除、存在しない親の登録、型一致を確認する。
-- DDLまたはマイグレーションを作成した場合は、適用前後とロールバック手順を記録する。
+- マイグレーションを作成した場合は、空のDBへの`alembic upgrade head`が通ることを確認し、適用前後の状態を記録する。
+- 本番で戻すときは`alembic downgrade`ではなくバックアップから復元する（`docs/infrastructure/architecture.md` 2章）。
 - `TEST_DATABASE_URL`を明示した独立したPostgreSQLで、競合・外部キー・ロールバックを検証する。既存運用DBをテスト先にしない。

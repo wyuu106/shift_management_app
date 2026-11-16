@@ -9,10 +9,13 @@ description: React/Vite製シフト管理アプリの画面、コンポーネン
 
 作業前に対象機能の要件を確認する。
 
-- 共通: `docs/requirements/README.md`
-- 管理者: `docs/requirements/admin.md`
-- スタッフ: `docs/requirements/staff.md`
-- 構成: `docs/architecture/directory-structure.md`
+- 画面の構成・表示・文言: `docs/requirements/ui.md`
+- 管理者の操作: `docs/requirements/admin.md`
+- スタッフの操作: `docs/requirements/staff.md`
+- 表示期間・期間選択: `docs/requirements/period.md`
+- APIの入出力・保存の競合: `docs/requirements/api.md`
+- ログイン・権限などの共通要件: `docs/requirements/README.md`
+- ファイルの置き場所: `docs/architecture/directory-structure.md`
 
 ## 責務
 
@@ -29,6 +32,7 @@ description: React/Vite製シフト管理アプリの画面、コンポーネン
 - JWTとロールは`localStorage`の`token`、`role`へ保存する。
 - `Calender.jsx`は表示担当。期間・シフト取得を追加せず、ページから`period`と`shifts`を渡す。
 - 管理者カレンダーだけ`onDateSelect`を渡して編集可能にする。スタッフ側は閲覧専用。
+- 期間の切り替えは`PeriodSelector`を使う。取得・保存には選択中の`period_id`を指定する。
 - 成功通知は`SuccessPopup`、読み込み・空状態・エラーは`Feedback.jsx`の共通部品を使う。
 - シフト編集と希望提出の変更検知には`useUnsavedChanges`を使う。保存成功時のみ未保存状態を解除する。
 - 保存には取得済みの`expected_version`を渡す。409時は編集内容を保持し、明示的な確認後に最新データを読み直す。

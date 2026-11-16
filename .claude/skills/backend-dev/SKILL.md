@@ -7,10 +7,15 @@ description: FastAPI製シフト管理APIのrouter、CRUD、Pydantic schema、JW
 
 ## 参照先
 
-- API・共通要件: `docs/requirements/README.md`
-- 管理者要件: `docs/requirements/admin.md`
-- スタッフ要件: `docs/requirements/staff.md`
-- 構成: `docs/architecture/directory-structure.md`
+作業前に対象機能の要件を確認する。
+
+- API一覧・対象期間の指定・保存の競合: `docs/requirements/api.md`
+- 期間の重複・上書き・表示期間: `docs/requirements/period.md`
+- テーブルと制約: `docs/requirements/data.md`
+- ログイン・権限などの共通要件: `docs/requirements/README.md`
+- 管理者の操作: `docs/requirements/admin.md`
+- スタッフの操作: `docs/requirements/staff.md`
+- ファイルの置き場所: `docs/architecture/directory-structure.md`
 
 ## 層ごとの責務
 
@@ -25,7 +30,8 @@ routerへ複雑なSQLや一括更新ロジックを置かず、CRUDへ委譲す�
 
 ## 認証・認可
 
-- 公開APIは`/init`、`/register/request`、`/login`。
+- 公開APIは`/register/request`、`/login`。
+- 初期管理者を作るAPIは置かない。`backend/scripts/create_admin.py`をサーバー上で実行して作成する。
 - それ以外は原則`get_current_user`を依存注入する。
 - 管理者専用APIでは`current_user.role == "admin"`を検証し、不一致は403にする。
 - JWTのsubjectには文字列のユーザーID、`auth_id`にはアカウント作成ごとの認証識別子を入れ、有効期限は6時間とする。認証時に両方をDBと照合する。
@@ -70,6 +76,13 @@ routerへ複雑なSQLや一括更新ロジックを置かず、CRUDへ委譲す�
 ```bash
 python -m compileall backend/app
 git diff --check
+```
+
+自動テスト（本番DBに接続しない）:
+
+```bash
+cd backend
+conda run -n devenv python -m unittest discover -s tests -v
 ```
 
 可能であればFastAPIを起動し、変更対象APIについて以下を確認する。
