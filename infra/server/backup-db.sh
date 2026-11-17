@@ -12,6 +12,7 @@ DB_NAME=shift_management
 BACKUP_DIR=/var/backups/shift-management
 BACKUP_ENV=/etc/shift-management/backup.env
 STATE_DIR=/var/lib/shift-management
+OPS_DIR=/usr/local/lib/shift-management
 LOCAL_KEEP_DAYS=7
 REMOTE_KEEP_DAYS=30
 
@@ -54,6 +55,10 @@ echo "アップロードした: $remote"
 # 外部保存まで成功した日時を記録する。backup-status.shがこれを見て古すぎないか判定する
 mkdir -p "$STATE_DIR"
 printf '%s %s\n' "$(date --iso-8601=seconds)" "$remote" > "$STATE_DIR/backup-last-success"
+
+# 合図を送れなくてもバックアップ自体は成功しているため、失敗扱いにしない。
+# 合図が届かなければ監視サービスが通知するので、気づくことはできる
+bash "$OPS_DIR/ping-monitor.sh" PING_URL_BACKUP || true
 
 # ファイル名の日付で古いものを削除する
 cutoff=$(TZ=Asia/Tokyo date -d "-$REMOTE_KEEP_DAYS days" +%Y%m%d)

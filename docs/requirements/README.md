@@ -136,6 +136,7 @@ IDは半角英数字・`-`・`_`の1〜64文字とする。画面とAPIの両方
 | `DATABASE_URL` | PostgreSQL接続文字列 |
 | `SECRET_KEY` | JWT署名鍵 |
 | `ALLOW_ORIGINS` | CORS許可元。複数の場合はカンマ区切り |
+| `ENABLE_API_DOCS` | `true`のときだけ`/docs`・`/redoc`・`/openapi.json`を公開する。ローカル開発用で、本番では設定しない |
 
 ### Frontend
 

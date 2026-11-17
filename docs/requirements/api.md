@@ -40,6 +40,14 @@
 | PUT | `/shift` | 管理者 | 確定シフト一括登録 |
 | GET | `/user/shifts` | ログイン済み | 自分の確定シフト取得 |
 
+### 運用
+
+| Method | Path | 認証・権限 | 用途 |
+| --- | --- | --- | --- |
+| GET | `/health` | なし | 起動確認と死活監視。正常時は`{"status": "ok"}`、DBに接続できないときは503を返す |
+
+`/docs`・`/redoc`・`/openapi.json`は、環境変数`ENABLE_API_DOCS=true`のときだけ公開する。
+
 ### 権限
 
 - 認証が必要なAPIは、Bearerトークンから現在のユーザーを特定する。

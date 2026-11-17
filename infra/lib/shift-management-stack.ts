@@ -68,6 +68,23 @@ export class ShiftManagementStack extends cdk.Stack {
     });
     backupBucket.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
 
+    // 通知先のメールアドレス（Lightsailの連絡先）はCloudFormationで作れないため、CLIで登録する
+    for (const alarmConfig of config.alarms) {
+      const alarm = new lightsail.CfnAlarm(this, alarmConfig.id, {
+        alarmName: alarmConfig.name,
+        monitoredResourceName: instance.instanceName,
+        metricName: alarmConfig.metricName,
+        comparisonOperator: 'GreaterThanOrEqualToThreshold',
+        threshold: alarmConfig.threshold,
+        evaluationPeriods: alarmConfig.periods,
+        datapointsToAlarm: alarmConfig.periods,
+        contactProtocols: ['Email'],
+        notificationEnabled: true,
+        notificationTriggers: ['ALARM'],
+      });
+      alarm.addResourceDependency(instance);
+    }
+
     new cdk.CfnOutput(this, 'InstanceName', {
       value: instance.instanceName,
     });

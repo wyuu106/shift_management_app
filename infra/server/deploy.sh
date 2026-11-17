@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
-# アプリを更新する。確認 → 取得 → スクリプト配置 → バックアップ → 依存更新 → マイグレーション → 再起動 の順に行う。
+# アプリを更新する。次の順に行う。
+#   1. 確認: 管理用・アプリ用のチェックアウトの状態
+#   2. 事前リハーサル: バックアップを一時DBへ復元し、新しいコードのマイグレーションを試す。
+#      失敗したら本番には触れずに中止する
+#   3. アプリを止めてバックアップ
+#   4. コード取得 → スクリプト配置 → 依存更新 → マイグレーション → 起動 → 起動確認
+#   5. 4で失敗したら、コードと依存パッケージを元のコミットへ戻し、3のバックアップからDBを復元して起動する
+# 3〜4の間（数十秒）はAPIが止まる。
 # 使い方:
 #   git -C ~/shift-management-app pull --ff-only
 #   sudo bash ~/shift-management-app/infra/server/deploy.sh
@@ -55,6 +62,13 @@ assert_path_trusted "$SCRIPT_DIR/lib/ops.sh"
 APP_DIR=/opt/shift-management/app
 VENV=/opt/shift-management/venv
 ENV_FILE=/etc/shift-management/backend.env
+DB_NAME=shift_management
+DB_USER=shift_app
+APP_URL=http://127.0.0.1:8000
+# 事前リハーサル用。本番のDB・コード・venvとは別に用意し、動いているアプリに影響させない
+REHEARSAL_DB=shift_management_rehearsal
+REHEARSAL_DIR=/opt/shift-management/rehearsal
+REHEARSAL_VENV=/opt/shift-management/venv-rehearsal
 REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 # APP_USER、OPS_DIR、assert_not_writable_by_app、install_ops_filesを定義する
 source "$SCRIPT_DIR/lib/ops.sh"
@@ -100,43 +114,226 @@ main() {
     exit 1
   fi
 
+  if ! db_exists; then
+    echo "DB $DB_NAME がない。先に setup-db.sh を実行すること" >&2
+    exit 1
+  fi
+
+  local status
+
+  # ifの条件の中で関数を呼ぶと、関数内のset -e（失敗したら止まる設定）が効かなくなる。
+  # 途中の失敗を見逃さないよう、条件の外でサブシェルとして実行し、終了コードを受け取る
+  echo "== 事前リハーサル（本番のDBには触れない）"
+  trap cleanup_rehearsal EXIT
+  set +e
+  ( set -e; rehearse "$ops_commit" )
+  status=$?
+  set -e
+  cleanup_rehearsal
+  trap - EXIT
+
+  if (( status != 0 )); then
+    echo "[エラー] 事前リハーサルに失敗した。本番は何も変更していない" >&2
+    exit 1
+  fi
+
+  local prev_commit
+  local had_schema=false
+  prev_commit=$(run_as_app git -C "$APP_DIR" rev-parse HEAD)
+  if has_schema; then
+    had_schema=true
+  fi
+
+  # 止めてからバックアップを取る。バックアップ後の書き込みが、戻したときに消えないようにするため
+  echo "== アプリを止めてバックアップ"
+  systemctl stop shift-management
+
+  local backup_file
+  if ! backup_file=$(take_backup) || [[ ! -f "$backup_file" ]]; then
+    echo "[エラー] バックアップに失敗した。何も変更していないため、アプリを再開する" >&2
+    systemctl start shift-management
+    exit 1
+  fi
+
+  set +e
+  ( set -e; apply_update "$ops_commit" )
+  status=$?
+  set -e
+
+  if (( status == 0 )); then
+    echo "== デプロイが完了した（${ops_commit:0:12}）"
+    exit 0
+  fi
+
+  echo "[エラー] デプロイに失敗した。デプロイ前の状態（${prev_commit:0:12}）へ戻す" >&2
+  set +e
+  ( set -e; roll_back "$prev_commit" "$had_schema" "$backup_file" )
+  status=$?
+  set -e
+
+  if (( status == 0 )); then
+    echo "[エラー] デプロイは失敗したが、デプロイ前の状態へ戻してアプリを再開した" >&2
+    echo "         journalctl -u shift-management -n 50 と上の出力で原因を確認すること" >&2
+  else
+    echo "[エラー] デプロイに失敗し、元に戻すこともできなかった。アプリは停止している可能性がある" >&2
+    echo "         デプロイ前のバックアップ: $backup_file" >&2
+    echo "         デプロイ前のコミット: $prev_commit" >&2
+  fi
+  exit 1
+}
+
+db_exists() {
+  sudo -u postgres psql -tAX -c "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1
+}
+
+# マイグレーションを一度でも適用したDBか（初回デプロイの空のDBではfalse）
+has_schema() {
+  sudo -u postgres psql -tAX -d "$DB_NAME" \
+    -c "SELECT to_regclass('public.alembic_version') IS NOT NULL" | grep -q t
+}
+
+# サーバー内にバックアップを取り、保存したファイルのパスだけを標準出力へ返す
+take_backup() {
+  local output
+  output=$(bash "$OPS_DIR/backup-db.sh" --local-only)
+  echo "$output" >&2
+  echo "$output" | sed -n 's/^保存した: //p'
+}
+
+install_requirements() {
+  local venv="$1"
+  local code_dir="$2"
+
+  if [[ ! -d "$venv" ]]; then
+    run_as_app python3 -m venv "$venv"
+  fi
+  run_as_app "$venv/bin/pip" install --quiet -r "$code_dir/backend/requirements.txt"
+}
+
+# 指定したDBへマイグレーションを適用する。接続先はbackend.envのDATABASE_URLのDB名だけを差し替えて作る。
+# パスワードを含むURLをコマンド引数に載せないよう、差し替えはshiftappのシェルの中で行う
+run_migration() {
+  local venv="$1"
+  local code_dir="$2"
+  local db_name="$3"
+
+  run_as_app bash -c "
+    set -euo pipefail
+    set -a && source '$ENV_FILE' && set +a
+
+    if [[ \"\$DATABASE_URL\" != */$DB_NAME ]]; then
+      echo 'DATABASE_URLが /$DB_NAME で終わっていないため、接続先を判定できない' >&2
+      exit 1
+    fi
+    export DATABASE_URL=\"\${DATABASE_URL%/*}/$db_name\"
+
+    cd '$code_dir/backend' && '$venv/bin/alembic' upgrade head
+  "
+}
+
+# 応答するまで待つ。残りの引数はcurlへ渡す
+wait_for_app() {
+  for _ in $(seq 1 10); do
+    if curl "$@" -o /dev/null 2>/dev/null; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+cleanup_rehearsal() {
+  run_as_app git -C "$APP_DIR" worktree remove --force "$REHEARSAL_DIR" 2>/dev/null || true
+  run_as_app git -C "$APP_DIR" worktree prune || true
+  sudo -u postgres dropdb --if-exists "$REHEARSAL_DB" || true
+}
+
+# 本番のデータでだけ失敗するマイグレーションを、本番を変更する前に見つける
+rehearse() {
+  local ops_commit="$1"
+  local dump
+
+  cleanup_rehearsal
+
+  dump=$(take_backup)
+  if [[ ! -f "$dump" ]]; then
+    echo "リハーサル用のバックアップを取れなかった" >&2
+    return 1
+  fi
+
+  sudo -u postgres createdb --owner "$DB_USER" "$REHEARSAL_DB"
+  # ダンプはrootだけが読めるため、rootが開いて標準入力で渡す
+  sudo -u postgres pg_restore \
+    --no-owner \
+    --role="$DB_USER" \
+    --exit-on-error \
+    --dbname="$REHEARSAL_DB" \
+    < "$dump"
+
+  run_as_app git -C "$APP_DIR" worktree add --quiet --detach "$REHEARSAL_DIR" "$ops_commit"
+  install_requirements "$REHEARSAL_VENV" "$REHEARSAL_DIR"
+  run_migration "$REHEARSAL_VENV" "$REHEARSAL_DIR" "$REHEARSAL_DB"
+
+  echo "== 事前リハーサルに成功した"
+}
+
+apply_update() {
+  local ops_commit="$1"
+
   echo "== コードを取得"
   run_as_app git -C "$APP_DIR" merge --ff-only --quiet "$ops_commit"
 
   echo "== rootで実行するスクリプトとsystemdの設定を更新"
   install_ops_files "$SCRIPT_DIR"
 
-  echo "== マイグレーション前にバックアップ"
-  if sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname = 'shift_management'" | grep -q 1; then
-    bash "$OPS_DIR/backup-db.sh" --local-only
-  fi
-
   echo "== 依存パッケージ"
-  if [[ ! -d "$VENV" ]]; then
-    run_as_app python3 -m venv "$VENV"
-  fi
-  run_as_app "$VENV/bin/pip" install --quiet -r "$APP_DIR/backend/requirements.txt"
+  install_requirements "$VENV" "$APP_DIR"
 
   echo "== マイグレーション"
-  run_as_app bash -c "
-    set -a && source '$ENV_FILE' && set +a
-    cd '$APP_DIR/backend' && '$VENV/bin/alembic' upgrade head
-  "
+  run_migration "$VENV" "$APP_DIR" "$DB_NAME"
 
-  echo "== 再起動"
+  echo "== 起動"
   systemctl enable --now shift-management
-  systemctl restart shift-management
 
-  for _ in $(seq 1 10); do
-    if curl -fsS -o /dev/null http://127.0.0.1:8000/docs; then
-      echo "== 起動を確認した"
-      exit 0
-    fi
-    sleep 2
-  done
+  # /healthはDBへの接続も確認する
+  if ! wait_for_app -fsS "$APP_URL/health"; then
+    echo "起動を確認できない" >&2
+    return 1
+  fi
+  echo "== 起動を確認した"
+}
 
-  echo "起動を確認できない。journalctl -u shift-management -n 50 でログを見ること" >&2
-  exit 1
+# alembic downgradeは普段実行しないため使わず、デプロイ前のバックアップから復元する
+roll_back() {
+  local prev_commit="$1"
+  local had_schema="$2"
+  local backup_file="$3"
+
+  systemctl stop shift-management
+
+  echo "== コードと依存パッケージを戻す"
+  run_as_app git -C "$APP_DIR" reset --hard --quiet "$prev_commit"
+  install_requirements "$VENV" "$APP_DIR"
+
+  if ! $had_schema; then
+    echo "初回のデプロイで戻す先のDBがないため、DBは復元しない。アプリは停止したままにする" >&2
+    return 1
+  fi
+
+  echo "== デプロイ前のバックアップからDBを復元"
+  # 復元はバックアップにあるテーブルだけを作り直す。新しいマイグレーションが追加したテーブルなどが
+  # 残らないよう、アプリのDBユーザーが持つものを先にすべて消す
+  sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d "$DB_NAME" -c "DROP OWNED BY $DB_USER"
+
+  # 復元後、スキーマのバージョンがコードと一致することを確認できたときだけアプリを起動する。
+  # このスクリプトと同じコミットのrestore-db.shを使うため、管理用のチェックアウトから実行する
+  bash "$SCRIPT_DIR/restore-db.sh" --yes "$backup_file"
+
+  # 戻した先のコードに/healthがあるとは限らないため、応答があるかだけを見る
+  if ! wait_for_app -sS "$APP_URL/"; then
+    echo "戻したあとの起動を確認できない" >&2
+    return 1
+  fi
 }
 
 main "$@"; exit $?

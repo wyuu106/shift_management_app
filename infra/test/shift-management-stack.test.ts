@@ -66,6 +66,31 @@ test('起動スクリプトを持たない', () => {
   });
 });
 
+test('インスタンスの異常とCPUの高負荷をメールで通知する', () => {
+  const template = synth();
+
+  template.resourceCountIs('AWS::Lightsail::Alarm', 2);
+
+  for (const metricName of ['StatusCheckFailed', 'CPUUtilization']) {
+    template.hasResourceProperties('AWS::Lightsail::Alarm', {
+      MetricName: metricName,
+      MonitoredResourceName: config.instance.name,
+      ContactProtocols: ['Email'],
+      NotificationEnabled: true,
+      NotificationTriggers: ['ALARM'],
+    });
+  }
+});
+
+test('アラームはインスタンスの作成後に作る', () => {
+  const template = synth();
+  const [instanceId] = Object.keys(template.findResources('AWS::Lightsail::Instance'));
+
+  for (const alarm of Object.values(template.findResources('AWS::Lightsail::Alarm'))) {
+    expect(alarm.DependsOn).toContain(instanceId);
+  }
+});
+
 test('不正な管理者IPは拒否する', () => {
   expect(() => readRuntimeSettings(() => '203.0.113.10')).toThrow();
 });

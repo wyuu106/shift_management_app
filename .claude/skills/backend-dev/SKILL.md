@@ -30,7 +30,8 @@ routerへ複雑なSQLや一括更新ロジックを置かず、CRUDへ委譲す�
 
 ## 認証・認可
 
-- 公開APIは`/register/request`、`/login`。
+- 公開APIは`/register/request`、`/login`、`/health`。
+- `/docs`・`/redoc`・`/openapi.json`は`ENABLE_API_DOCS=true`のときだけ公開する。本番では設定しない。
 - 初期管理者を作るAPIは置かない。`backend/scripts/create_admin.py`をサーバー上で実行して作成する。
 - それ以外は原則`get_current_user`を依存注入する。
 - 管理者専用APIでは`current_user.role == "admin"`を検証し、不一致は403にする。

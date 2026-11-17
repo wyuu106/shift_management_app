@@ -1,0 +1,7 @@
+[Unit]
+Description=Shift management server check (disk, certificate)
+# ログは journalctl -u shift-management-server-check で見る
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /usr/local/lib/shift-management/server-check.sh

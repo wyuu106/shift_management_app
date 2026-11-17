@@ -44,6 +44,8 @@ install_ops_files() {
     "$script_dir/backup-db.sh" \
     "$script_dir/backup-status.sh" \
     "$script_dir/restore-db.sh" \
+    "$script_dir/ping-monitor.sh" \
+    "$script_dir/server-check.sh" \
     "$OPS_DIR/"
   install -m 644 "$script_dir"/systemd/*.service "$script_dir"/systemd/*.timer /etc/systemd/system/
   install -m 755 "$script_dir/motd/90-shift-management-backup" /etc/update-motd.d/

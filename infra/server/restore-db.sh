@@ -6,6 +6,7 @@
 # 使い方:
 #   sudo bash /usr/local/lib/shift-management/restore-db.sh /var/backups/shift-management/shift_management_20261112-030000.dump
 #   sudo bash /usr/local/lib/shift-management/restore-db.sh s3://<バケット名>/db/shift_management_20261112-030000.dump
+# --yes を先頭に付けると確認を省く。deploy.shが失敗時に自動で戻すために使う。手動では付けない。
 set -euo pipefail
 
 export PATH="$PATH:/snap/bin"
@@ -67,6 +68,12 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+assume_yes=false
+if [[ "${1:-}" == "--yes" ]]; then
+  assume_yes=true
+  shift
+fi
+
 source_path="${1:?復旧するバックアップファイルを指定してください}"
 
 # ダンプには全データが入っているため、作成した時点から本人以外は読めないようにする
@@ -92,10 +99,12 @@ chmod 600 "$work_dir/restore.dump"
 sudo -u postgres pg_restore --list "$work_dir/restore.dump" > /dev/null
 
 echo "DB $DB_NAME を $source_path の内容で上書きする。"
-read -r -p "続けるならDB名（$DB_NAME）を入力: " answer
-if [[ "$answer" != "$DB_NAME" ]]; then
-  echo "中止した"
-  exit 1
+if ! $assume_yes; then
+  read -r -p "続けるならDB名（$DB_NAME）を入力: " answer
+  if [[ "$answer" != "$DB_NAME" ]]; then
+    echo "中止した"
+    exit 1
+  fi
 fi
 
 echo "== 念のため現在のDBを保存"

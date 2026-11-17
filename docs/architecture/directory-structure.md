@@ -92,6 +92,7 @@ HTTP層。パス、HTTPメソッド、リクエスト・レスポンス型、認
 | `user_router.py` | 登録申請、承認・却下、ログイン、ユーザー管理 |
 | `period_router.py` | シフト期間・営業日の取得と登録 |
 | `shift_router.py` | 希望と確定シフトの取得・登録 |
+| `health_router.py` | 起動確認と死活監視用の`/health` |
 
 ルーターには複雑なDB処理を置かず、CRUD関数へ委譲する。
 
