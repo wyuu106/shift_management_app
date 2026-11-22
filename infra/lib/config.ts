@@ -9,7 +9,7 @@ export const config = {
     name: 'shift-management-server',
     // 変更するとインスタンスが作り直され、中のDBが消える。変更前に必ずバックアップを取る
     blueprintId: 'ubuntu_24_04',
-    bundleId: 'small_3_2',
+    bundleId: 'micro_3_2',
     // SSHキーペア名。undefinedならリージョンのデフォルトキーペアを使う。
     // 変更するとインスタンスが作り直されるため、コマンド引数ではなくここで固定する
     keyPairName: undefined as string | undefined,

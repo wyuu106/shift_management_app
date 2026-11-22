@@ -30,7 +30,7 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 | アベイラビリティーゾーン | `ap-southeast-2a` |
 | AWS CLIプロファイル | `yumeri` |
 | CDKスタック | `ShiftManagementStack` |
-| インスタンス | `shift-management-server` / `ubuntu_24_04` / `small_3_2`（2GB RAM） |
+| インスタンス | `shift-management-server` / `ubuntu_24_04` / `micro_3_2`（1GB RAM） |
 | 静的IP | `shift-management-ip` |
 | バックアップ先 | Lightsailバケット `shift-management-backup-<アカウントID>`（`small_1_0`） |
 | DB | `shift_management`、接続ユーザー`shift_app` |
@@ -138,6 +138,7 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 ### OS
 
 - `unattended-upgrades`でセキュリティ更新を自動適用する。
+- 2GBのswap（メモリが足りないときにディスクを代わりに使う領域）を`/swapfile`に作る。1GBのメモリでは依存導入やマイグレーションの際に足りなくなり、PostgreSQLやFastAPIが強制終了されるおそれがあるため。swap中は遅くなるが、止まるよりはよいと判断した。
 - FastAPIは専用ユーザー`shiftapp`で動かし、rootでは動かさない。
 
 ## 4. バックアップと復旧
@@ -187,7 +188,7 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 
 | リソース | 月額 | 備考 |
 | --- | --- | --- |
-| インスタンス `small_3_2` | 約12ドル | データ転送量の無料枠を含む |
+| インスタンス `micro_3_2` | 約7ドル（未確認） | データ転送量の無料枠を含む |
 | 静的IP | 0ドル | インスタンスに付けている間は無料。外したままにすると課金される |
 | バケット `small_1_0` | 約1ドル | 5GBまで |
 | ドメイン | 取得先による | 年額 |
@@ -215,10 +216,10 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 
 ## 8. 前提と未決事項
 
-- 利用規模は店舗1つ・利用者数十人を前提とする。この規模では`small_3_2`（2GB RAM）で足りると判断している。
+- 利用規模は店舗1つ・利用者数十人を前提とする。この規模では`micro_3_2`（1GB RAM）で足りると判断している。費用を優先して2GBから下げ、一時的なメモリ不足はswapで補う（3章）。
 - リージョンは`ap-southeast-2`（シドニー）を使う。
 
-- `ap-southeast-2`でLightsailを使えること、`small_3_2`と`small_1_0`が存在することはまだ確認していない。デプロイ前に`aws lightsail get-bundles`と`aws lightsail get-bucket-bundles`で確認する。
+- `ap-southeast-2`で`micro_3_2`と`small_1_0`が存在することは2026年11月に確認した。
 - APIに使う独自ドメインは未定。決まるまで本番切り替えはできない。
 - 監視と通知に使う外部サービスは未定。無料プランの内容と、店舗の業務で使ってよいか（商用利用の可否）を確認してから決める。Lightsailのメトリクスアラームが無料であることも未確認。
 - デプロイの事前リハーサルと自動ロールバック、ログインの回数制限、監視用のスクリプト、Lightsailのアラームは、実装したがサーバー上ではまだ動かしていない。本番運用の前に`infra/README.md`の確認項目を実施する。

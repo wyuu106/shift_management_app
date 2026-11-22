@@ -55,6 +55,16 @@ APP_HOME=/opt/shift-management
 CONFIG_DIR=/etc/shift-management
 BACKUP_DIR=/var/backups/shift-management
 
+echo "== swap（1GBのメモリでは依存導入時などに足りなくなるため）"
+if ! swapon --show=NAME --noheadings | grep -qx /swapfile; then
+  [[ -f /swapfile ]] || fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+fi
+# 再起動後も有効にする
+grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
 echo "== パッケージのインストール"
 apt-get update
 apt-get install -y \

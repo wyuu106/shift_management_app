@@ -12,7 +12,7 @@ infra/
 ├── scripts/check-change-set.ts   変更セットの判定
 ├── test/                         スタックと判定処理のテスト
 └── server/                       サーバー内で実行するスクリプトと設定
-    ├── setup.sh                  パッケージ、ufw、ユーザー、systemd、Nginx
+    ├── setup.sh                  swap、パッケージ、ufw、ユーザー、systemd、Nginx
     ├── setup-db.sh               DB・DBユーザー・環境変数ファイルの作成
     ├── deploy.sh                 アプリの更新（事前リハーサル、マイグレーション、失敗時の自動ロールバック）
     ├── backup-db.sh              DBバックアップ
@@ -50,7 +50,7 @@ npx cdk synth -c adminCidr=<自宅のIP>/32
 aws sts get-caller-identity --profile yumeri
 aws lightsail get-regions --include-availability-zones --profile yumeri --region ap-southeast-2
 aws lightsail get-bundles --profile yumeri --region ap-southeast-2 \
-  --query "bundles[?bundleId=='small_3_2']"
+  --query "bundles[?bundleId=='micro_3_2']"
 aws lightsail get-bucket-bundles --profile yumeri --region ap-southeast-2
 ```
 
