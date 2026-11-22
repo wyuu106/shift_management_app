@@ -9,45 +9,83 @@
 - データベース: PostgreSQL / SQLAlchemy
 - 認証: JWT Bearer認証
 
+## 参照する文書
+
 実装前に、対象機能に応じて以下を確認すること。
 また、以下のファイルはユーザーの許可なしに変更しないこと。
 
-- 共通要件: `docs/requirements/README.md`
-- 管理者要件: `docs/requirements/admin.md`
-- スタッフ要件: `docs/requirements/staff.md`
-- インフラ要件: `docs/infrastructure/`
-- ディレクトリ構成: `docs/architecture/directory-structure.md`
-- フロントエンド開発: `.agents/skills/frontend-dev/SKILL.md`
-- バックエンド開発: `.agents/skills/backend-dev/SKILL.md`
-- DB開発: `.agents/skills/database-dev/SKILL.md`
+要件（一覧は`docs/README.md`）
+
+| 文書 | 内容 |
+| --- | --- |
+| `docs/requirements/README.md` | 共通要件（目的、登録申請、ログイン、権限、非機能要件） |
+| `docs/requirements/admin.md` | 管理者要件 |
+| `docs/requirements/staff.md` | スタッフ要件 |
+| `docs/requirements/period.md` | シフト期間のルール |
+| `docs/requirements/ui.md` | UI要件 |
+| `docs/requirements/api.md` | API要件 |
+| `docs/requirements/data.md` | データ要件 |
+
+設計
+
+| 文書 | 内容 |
+| --- | --- |
+| `docs/architecture/directory-structure.md` | ディレクトリ構成 |
+| `docs/infrastructure/` | インフラ要件 |
+
+開発手順
+
+| 文書 | 内容 |
+| --- | --- |
+| `.agents/skills/frontend-dev/SKILL.md` | フロントエンド開発 |
+| `.agents/skills/backend-dev/SKILL.md` | バックエンド開発 |
+| `.agents/skills/database-dev/SKILL.md` | DB開発 |
+
+`infra/`で作業するときは`infra/AGENTS.md`も確認する。
 
 ## 基本方針
 
+### 仕様
+
 - 既存の要件、画面遷移、API契約、DB構造を正とし、依頼されていない仕様変更を行わない。
 - 管理者とスタッフの権限境界を維持する。
+- 既存の日本語UIとスマートフォン中心のレスポンシブ設計を維持する。
+
+### データの扱い
+
 - ユーザーIDは文字列型として扱う。数値型へ変更しない。
 - 日付はAPI・DBでは`YYYY-MM-DD`として扱い、画面表示時のみ日本語形式へ変換する。
-- シフト期間は複数保持する。重複時だけ確認後に対象期間全体と営業日を新しい1件へ置き換え、対象期間全体の希望を削除する。期間設定時は確定シフトを保持する。
-- シフト確認・編集は日本時間の当日を含む期間、希望提出は終了日が最も遅い期間を初期表示する。各画面で期間を選択でき、取得・保存は選択した`period_id`を指定する。
 - 期間設定・希望登録・確定シフト登録は単一トランザクションで行い、失敗時は必ずロールバックする。
 - シフト希望と確定シフトは、対象期間内の既存データを削除してから一括登録する。
+
+### シフト期間
+
+詳細は`docs/requirements/period.md`を参照。
+
+- シフト期間は複数保持する。重複時だけ確認後に対象期間全体と営業日を新しい1件へ置き換え、対象期間全体の希望を削除する。期間設定時は確定シフトを保持する。
+- シフト確認・編集は日本時間の当日を含む期間、希望提出は終了日が最も遅い期間を初期表示する。各画面で期間を選択でき、取得・保存は選択した`period_id`を指定する。
 - 休業日は`business_dates`に含まれない日として扱う。画面上では「休」と表示する。
 - 新しいシフト期間を画面で指定した際のデフォルト休業日は日曜日と水曜日。
+
+### セキュリティ
+
 - パスワードを平文で保存・ログ出力しない。
 - `.env`、秘密鍵、DB接続情報をコミットしない。
-- 既存の日本語UIとスマートフォン中心のレスポンシブ設計を維持する。
-- API通信はページで行い、表示コンポーネントはpropsを中心に受け取る。
 
 ## 実装上の境界
 
-- `frontend/src/pages/`: API取得、送信、ページ状態、画面固有の処理
-- `frontend/src/components/`: 再利用可能な表示・ナビゲーション部品
-- `frontend/src/utils/`: APIクライアント、日付、エラー処理
-- `frontend/src/hooks/`: 複数画面で利用するReact Hook
-- `backend/app/routers/`: HTTP入出力、依存注入、権限確認
-- `backend/app/cruds/`: DB検索、登録、更新、削除、トランザクション
-- `backend/app/schemas/`: PydanticによるAPIデータ契約
-- `backend/app/models/`: SQLAlchemyによるテーブル定義
+API通信はページで行い、表示コンポーネントはpropsを中心に受け取る。
+
+| ディレクトリ | 責務 |
+| --- | --- |
+| `frontend/src/pages/` | API取得、送信、ページ状態、画面固有の処理 |
+| `frontend/src/components/` | 再利用可能な表示・ナビゲーション部品 |
+| `frontend/src/utils/` | APIクライアント、日付、エラー処理 |
+| `frontend/src/hooks/` | 複数画面で利用するReact Hook |
+| `backend/app/routers/` | HTTP入出力、依存注入、権限確認 |
+| `backend/app/cruds/` | DB検索、登録、更新、削除、トランザクション |
+| `backend/app/schemas/` | PydanticによるAPIデータ契約 |
+| `backend/app/models/` | SQLAlchemyによるテーブル定義 |
 
 ## コーディング規約
 
@@ -60,6 +98,8 @@
 - 破壊的なDB操作やスキーマ変更は、対象データと影響範囲を確認してから行う。
 
 ## 検証
+
+変更したAPIと対応画面の主要操作を手動でも確認すること。
 
 フロントエンド変更後:
 
@@ -75,12 +115,6 @@ npm run build
 python -m compileall backend/app
 ```
 
-共通:
-
-```bash
-git diff --check
-```
-
 期間関連の自動テスト（本番DBに接続しない）:
 
 ```bash
@@ -88,4 +122,8 @@ cd backend
 conda run -n devenv python -m unittest discover -s tests -v
 ```
 
-変更したAPIと対応画面の主要操作を手動でも確認すること。
+共通:
+
+```bash
+git diff --check
+```

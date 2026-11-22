@@ -28,6 +28,7 @@ shift_management_app/
 │   ├── vite.config.js
 │   ├── vercel.json
 │   ├── public/
+│   ├── tests/
 │   └── src/
 │       ├── main.jsx
 │       ├── App.jsx
@@ -46,13 +47,27 @@ shift_management_app/
 │   ├── test/
 │   └── server/
 ├── docs/
+│   ├── README.md
 │   ├── requirements/
 │   ├── architecture/
-│   └── infrastructure/
+│   ├── infrastructure/
+│   └── review.md
+├── .claude/
+│   └── skills/
 ├── .agents/
 │   └── skills/
 └── images/
 ```
+
+| ディレクトリ | 内容 | 説明している章 |
+| --- | --- | --- |
+| `backend/` | FastAPIのAPIサーバー | 2章 |
+| `frontend/` | Reactの画面 | 3章 |
+| `infra/` | AWS Lightsail上の本番環境 | 4章 |
+| `docs/` | 要件と設計の文書。一覧は`docs/README.md` | - |
+| `.claude/skills/` | フロントエンド・バックエンド・DBの開発手順（スキル）の本体 | - |
+| `.agents/skills/` | `.claude/skills/`の各スキルへのシンボリックリンク | - |
+| `images/` | READMEで使用する画面キャプチャ | - |
 
 ## 2. バックエンド
 
@@ -68,20 +83,6 @@ shift_management_app/
 - SQLAlchemy EngineとSessionの生成
 - FastAPI用`get_db`依存関数
 
-### `backend/alembic/`
-
-Alembicによるスキーマのマイグレーション。テーブルの作成・変更はここで行い、アプリ起動時には作成しない。
-
-- `env.py`: `app.db`の接続先とモデルのメタデータを読み込む
-- `versions/`: マイグレーションファイル。`0001_initial_schema.py`が初期スキーマ
-
-### `backend/scripts/`
-
-運用時に手動で実行するスクリプト。
-
-- `create_admin.py`: 初期管理者の作成。パスワードは対話入力
-- `migrate_review.py`: 旧運用DB向けの移行。新環境では使わない
-
 ### `backend/app/routers/`
 
 HTTP層。パス、HTTPメソッド、リクエスト・レスポンス型、認証依存、管理者権限を扱う。
@@ -91,6 +92,7 @@ HTTP層。パス、HTTPメソッド、リクエスト・レスポンス型、認
 | `user_router.py` | 登録申請、承認・却下、ログイン、ユーザー管理 |
 | `period_router.py` | シフト期間・営業日の取得と登録 |
 | `shift_router.py` | 希望と確定シフトの取得・登録 |
+| `health_router.py` | 起動確認と死活監視用の`/health` |
 
 ルーターには複雑なDB処理を置かず、CRUD関数へ委譲する。
 
@@ -127,13 +129,23 @@ SQLAlchemyによるPostgreSQLテーブル定義。
 - `auth.py`: パスワードハッシュ、検証、JWT生成・復号、現在ユーザー取得
 - `period_util.py`: 現在のシフト期間取得と404処理
 
-### `infra/`
+### `backend/alembic/`
 
-AWS Lightsail上の本番環境。詳細は`docs/infrastructure/architecture.md`と`infra/README.md`。
+Alembicによるスキーマのマイグレーション。テーブルの作成・変更はここで行い、アプリ起動時には作成しない。
 
-- `lib/`: CDKスタックと設定値（インスタンス、静的IP、ファイアウォール、バックアップ用バケット）
-- `scripts/`: 置き換え・削除がないことを確認してから適用するデプロイスクリプト
-- `server/`: サーバー内のセットアップ、デプロイ、バックアップ・復旧・状態確認スクリプトとsystemd・Nginx設定
+- `env.py`: `app.db`の接続先とモデルのメタデータを読み込む
+- `versions/`: マイグレーションファイル。`0001_initial_schema.py`が初期スキーマ
+
+### `backend/scripts/`
+
+運用時に手動で実行するスクリプト。
+
+- `create_admin.py`: 初期管理者の作成。パスワードは対話入力
+- `migrate_review.py`: 旧運用DB向けの移行。新環境では使わない
+
+### `backend/tests/`
+
+`unittest`による自動テスト。本番DBには接続しない。
 
 ## 3. フロントエンド
 
@@ -156,6 +168,7 @@ Reactアプリケーションのエントリーポイント。
 
 - `Login.jsx`: ログインとセッション保存
 - `Register.jsx`: アカウント登録申請
+- `auth.css`: 認証画面のスタイル
 
 #### `admin/`
 
@@ -164,26 +177,48 @@ Reactアプリケーションのエントリーポイント。
 - `AdminOthers.jsx`: 管理メニューとログアウト
 - `UsersPage.jsx`: ユーザー一覧・削除
 - `UserRequestsPage.jsx`: 登録申請の承認・却下
+- `AdminGuide.jsx`: 管理者向けの使用方法
 - `admin.css`: 管理画面固有スタイル
 
 #### `staff/`
 
 - `StaffShifts.jsx`: 店舗全体の確定シフト表示
 - `ShiftRequestPage.jsx`: 自分の希望編集・提出
-- `StaffOthers.jsx`: ログアウト
+- `StaffOthers.jsx`: メニューとログアウト
+- `StaffGuide.jsx`: スタッフ向けの使用方法
 - `staff.css`: スタッフ画面と共通メニューのスタイル
 
 ### `frontend/src/components/`
 
+カレンダーとシフト
+
 | ファイル | 責務 |
 | --- | --- |
 | `Calender.jsx` | 期間、営業日、シフトをpropsで受け取るカレンダー表示 |
+| `PeriodSelector.jsx` | シフト期間の選択肢 |
+| `ShiftDetailSheet.jsx` | 日ごとのシフト詳細の表示 |
+| `ShiftEditSheet.jsx` | 日ごとのシフト編集（管理者） |
+
+共通の表示
+
+| ファイル | 責務 |
+| --- | --- |
 | `Feedback.jsx` | 読み込み、空状態、エラー、通知、成功モーダル |
+| `Modal.jsx` | モーダルの共通部品 |
+| `ConflictReload.jsx` | 保存が競合したときの再読み込みの案内 |
 | `PageHeader.jsx` | ページ見出しと右上アクション |
 | `BackButton.jsx` | 指定パスへ戻る共通ボタン |
+| `GuidePage.jsx` | 使用方法ページの共通レイアウト |
+
+ナビゲーションと画面保護
+
+| ファイル | 責務 |
+| --- | --- |
 | `ProtectedRoute.jsx` | JWT・ロールに基づく画面保護 |
 | `AdminBottomNav.jsx` | 管理者用下部ナビゲーション |
 | `StaffBottomNav.jsx` | スタッフ用下部ナビゲーション |
+
+各部品のスタイルは、同じディレクトリの`.css`ファイルに置く。
 
 `Calender.jsx`はAPI通信を行わず、`period`と`shifts`を受け取って表示する。管理者から`onDateSelect`を渡した場合のみ日付編集を可能にする。
 
@@ -203,7 +238,22 @@ Reactアプリケーションのエントリーポイント。
 - `date.js`: API日付キーと日本語表示の変換
 - `error.js`: Axiosエラーから表示用メッセージを取得
 
-## 4. 依存方向
+### `frontend/tests/`
+
+- `*.test.mjs`: 単体テスト（`npm test`）
+- `*.e2e.mjs`: Playwrightによる画面テスト（`npm run test:e2e`）
+
+## 4. インフラ
+
+`infra/`はAWS Lightsail上の本番環境を扱う。構成と理由は`docs/infrastructure/architecture.md`、構築・運用の手順は`infra/README.md`を参照。
+
+- `bin/`: CDKアプリのエントリーポイント
+- `lib/`: CDKスタックと設定値（インスタンス、静的IP、ファイアウォール、バックアップ用バケット）
+- `scripts/`: 置き換え・削除がないことを確認してから適用するデプロイスクリプト
+- `server/`: サーバー内のセットアップ、デプロイ、バックアップ・復旧・状態確認スクリプトとsystemd・Nginx設定
+- `test/`: CDKスタックと変更セット判定のテスト
+
+## 5. 依存方向
 
 ```text
 Frontend page
@@ -223,7 +273,7 @@ SQLAlchemy model / PostgreSQL
 - modelへ画面やHTTP固有の処理を置かない。
 - APIレスポンスを変更する場合はschema、CRUD、router、利用ページをまとめて確認する。
 
-## 5. 設定・生成物
+## 6. 設定・生成物
 
 - `backend/.env`、`frontend/.env`: ローカル設定。Git管理しない。
 - `.env.example`: 必要な環境変数の雛形。

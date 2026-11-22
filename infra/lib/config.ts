@@ -9,7 +9,7 @@ export const config = {
     name: 'shift-management-server',
     // 変更するとインスタンスが作り直され、中のDBが消える。変更前に必ずバックアップを取る
     blueprintId: 'ubuntu_24_04',
-    bundleId: 'small_3_2',
+    bundleId: 'micro_3_2',
     // SSHキーペア名。undefinedならリージョンのデフォルトキーペアを使う。
     // 変更するとインスタンスが作り直されるため、コマンド引数ではなくここで固定する
     keyPairName: undefined as string | undefined,
@@ -22,6 +22,27 @@ export const config = {
     namePrefix: 'shift-management-backup',
     bundleId: 'small_1_0',
   },
+
+  // インスタンスの異常をメールで知らせるアラーム。Lightsailは5分ごとに値を集計する。
+  // periods: この回数だけ連続でしきい値以上になったら通知する
+  alarms: [
+    {
+      id: 'StatusCheckAlarm',
+      name: 'shift-management-status-check',
+      // インスタンスやAWS側の機器に異常があると1になる
+      metricName: 'StatusCheckFailed',
+      threshold: 1,
+      periods: 2,
+    },
+    {
+      id: 'CpuAlarm',
+      name: 'shift-management-cpu',
+      // CPU使用率（%）。高い状態が続くと処理が遅くなる
+      metricName: 'CPUUtilization',
+      threshold: 80,
+      periods: 3,
+    },
+  ],
 };
 
 // 環境ごとに変わる値は、コマンド実行時に指定する
