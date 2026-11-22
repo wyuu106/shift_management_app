@@ -209,7 +209,7 @@ journalctl -u shift-management-server-check -n 30   # 確認のログ
 本番運用を始める前に一度試す。
 
 ```bash
-sudo bash -c 'source /etc/shift-management/backup.env && aws s3 ls "s3://$BACKUP_BUCKET/db/"'
+sudo bash -c 'set -a && source /etc/shift-management/backup.env && aws s3 ls "s3://$BACKUP_BUCKET/db/"'
 
 sudo bash /usr/local/lib/shift-management/restore-db.sh \
   "s3://shift-management-backup-<アカウントID>/db/<ファイル名>"
