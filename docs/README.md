@@ -15,6 +15,7 @@
 | [requirements/data.md](./requirements/data.md) | テーブルと制約 |
 | [architecture/directory-structure.md](./architecture/directory-structure.md) | ディレクトリ構成と各ファイルの責務、依存方向 |
 | [infrastructure/architecture.md](./infrastructure/architecture.md) | 本番環境（AWS Lightsail）の構成と、そう決めた理由 |
+| [infrastructure/deploy-flow.md](./infrastructure/deploy-flow.md) | 初回デプロイで行った操作の流れと、つまずいた点 |
 | [review.md](./review.md) | 過去のコードレビューと修正の記録 |
 
 本番環境の構築・運用の手順は`infra/README.md`にある。
@@ -31,6 +32,7 @@
 | テーブルを変更する | `requirements/data.md` |
 | ファイルの置き場所を決める | `architecture/directory-structure.md` |
 | 本番環境を変更する | `infrastructure/architecture.md`、`infra/README.md` |
+| 本番環境を一から構築する | `infrastructure/deploy-flow.md`、`infra/README.md` |
 
 ## 書き方の決まり
 
