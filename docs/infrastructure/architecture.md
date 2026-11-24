@@ -9,9 +9,9 @@
 ```text
 スマートフォン
   │ HTTPS
-  ├──────────────▶ Vercel（React）
+  ├──────────────▶ Vercel（React） www.yumeri-shift.com
   │
-  │ HTTPS（api.<ドメイン>）
+  │ HTTPS（api.yumeri-shift.com）
   ▼
 Lightsailインスタンス shift-management-server（Ubuntu 24.04）
   ├── Nginx :80 / :443 ── Let's Encrypt証明書、リバースプロキシ
@@ -34,6 +34,9 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 | 静的IP | `shift-management-ip` |
 | バックアップ先 | Lightsailバケット `shift-management-backup-<アカウントID>`（`small_1_0`） |
 | DB | `shift_management`、接続ユーザー`shift_app` |
+| ドメイン | `yumeri-shift.com`（Vercelで取得。DNSもVercelで管理） |
+| 画面のURL | `https://www.yumeri-shift.com`（`yumeri-shift.com`は`www`へ転送） |
+| APIのURL | `https://api.yumeri-shift.com`（Aレコードで静的IPへ向ける） |
 
 設定値は`infra/lib/config.ts`で管理する。SSHキーペア名のように変えるとインスタンスが作り直される値は、付け忘れで変わらないよう`config.ts`に固定する。変わりやすい管理者IPだけはコミットせず、デプロイ時に引数で渡す。
 
@@ -108,7 +111,7 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 ### HTTPS
 
 - Vercel（HTTPS）からHTTPのAPIを呼ぶとブラウザが通信を止める（mixed content）。そのため独自ドメインとHTTPSは必須。
-- 独自ドメインの`api.<ドメイン>`のAレコードに静的IPを設定し、`certbot --nginx`で証明書を発行する。証明書はcertbotが自動更新する。
+- `api.yumeri-shift.com`のAレコードに静的IPを設定し、`certbot --nginx`で証明書を発行する。証明書はcertbotが自動更新する。
 - 自動更新が失敗し続けると証明書の期限が切れ、ブラウザがAPIを拒否して全員が使えなくなる。期限の残りが14日を切ったら通知する（5章）。
 
 ### APIの入口
@@ -130,7 +133,7 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 | `/etc/shift-management/monitor.env` | 監視サービスへ合図を送るURL | `root:root` 600 |
 
 - DBパスワードと`SECRET_KEY`は`infra/server/setup-db.sh`がサーバー上で生成する。手元のPCやGitには置かない。
-- `ALLOW_ORIGINS`にはVercelの本番URLを設定する。
+- `ALLOW_ORIGINS`には画面のURLを設定する。現在は`https://www.yumeri-shift.com`と`https://shift-management-app-amber.vercel.app`。`*.vercel.app`のURLもまだ開けるため残している。
 - 鍵は定期的には交換しない。漏えいが疑われるときの交換手順は`infra/README.md`にある。
   - バケットのアクセスキー: 新しいキーを発行し、`backup.env`を差し替えてから、古いキーを削除する。
   - `SECRET_KEY`: 変更すると発行済みのトークンがすべて無効になり、全員が再ログインになる。トークンの有効期限は6時間なので影響は小さい。
@@ -172,7 +175,7 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 | 検知したいこと | 方法 |
 | --- | --- |
 | インスタンス自体の異常、CPUの高負荷 | Lightsailのメトリクスアラーム（CDKで作成）。状態確認の失敗が10分、またはCPU使用率80%以上が15分続いたら通知する |
-| APIが応答しない | 外部の死活監視サービスから`https://api.<ドメイン>/health`を定期的に確認する |
+| APIが応答しない | 外部の死活監視サービスから`https://api.yumeri-shift.com/health`を定期的に確認する |
 | バックアップが動いていない、失敗した | `backup-db.sh`が外部保存まで成功したときに外部サービスへ合図を送る。合図が一定時間来なければ通知される |
 | ディスクの空きが少ない | 毎日09:00（日本時間）に`server-check.sh`で確認し、使用率が80%未満なら外部サービスへ合図を送る |
 | 証明書の期限が近い | 上と同じ確認の中で、残り14日を切ったら異常とする |
@@ -188,13 +191,14 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 
 | リソース | 月額 | 備考 |
 | --- | --- | --- |
-| インスタンス `micro_3_2` | 約7ドル（未確認） | データ転送量の無料枠を含む |
+| インスタンス `micro_3_2` | 7ドル | データ転送量の無料枠を含む |
 | 静的IP | 0ドル | インスタンスに付けている間は無料。外したままにすると課金される |
-| バケット `small_1_0` | 約1ドル | 5GBまで |
-| ドメイン | 取得先による | 年額 |
+| バケット `small_1_0` | 1ドル | 5GBまで |
+| ドメイン `yumeri-shift.com` | Vercelの料金による | 年額 |
 | 監視と通知 | 0ドル | 無料の範囲だけを使う（5章） |
 
-- 金額は2026年11月時点の想定で、AWSの料金ページでは確認していない。デプロイ前に確認する。
+- インスタンスとバケットの金額は、2026年11月に`aws lightsail get-bundles`と`get-bucket-bundles`で確認した。
+- AWSアカウントは無料プランのため、料金はクレジットから差し引かれる。無料プランの期限が来たときの扱いは未確認。継続して使う場合は有料プランへのアップグレードが必要になる見込み。
 - `cdk bootstrap`をしないため、CDK用のS3バケットなどは作られない。
 - 手動スナップショットを作った場合は、容量に応じて別途課金される。
 
@@ -220,9 +224,10 @@ Lightsailオブジェクトストレージ shift-management-backup-<アカウン
 - リージョンは`ap-southeast-2`（シドニー）を使う。
 
 - `ap-southeast-2`で`micro_3_2`と`small_1_0`が存在することは2026年11月に確認した。
-- APIに使う独自ドメインは未定。決まるまで本番切り替えはできない。
+- 2026年11月に`yumeri-shift.com`を取得し、画面の接続先をRailwayから`api.yumeri-shift.com`へ切り替えた。
 - 監視と通知に使う外部サービスは未定。無料プランの内容と、店舗の業務で使ってよいか（商用利用の可否）を確認してから決める。Lightsailのメトリクスアラームが無料であることも未確認。
-- デプロイの事前リハーサルと自動ロールバック、ログインの回数制限、監視用のスクリプト、Lightsailのアラームは、実装したがサーバー上ではまだ動かしていない。本番運用の前に`infra/README.md`の確認項目を実施する。
+- 2026年11月の初回デプロイで、`deploy.sh`による起動（事前リハーサルを含む）、バックアップと外部保存、バケットからの復旧、HTTPS化、Lightsailのアラームの作成をサーバー上で確認した。手順は`deploy-flow.md`にまとめた。
+- デプロイ失敗時の自動ロールバック、ログインの回数制限、監視用のスクリプト（`server-check.sh`と監視サービスへの合図）は、実装したがサーバー上ではまだ動かしていない。本番運用の前に`infra/README.md`の確認項目を実施する。
 - 方針だけ決まっていて実装していない項目には「未実装」と書く。実装したら表記を消し、手順を`infra/README.md`に書く。
 - 学習用の`default`プロファイルと既存のEC2・RDS・VPCは使わない。CDKは必ず`--profile yumeri`で実行する。
 - 組織のSCP（AWS Organizationsのアクセス制限）で操作が拒否される場合は、拒否されたアクションを確認してから対応を決める。
