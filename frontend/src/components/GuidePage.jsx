@@ -42,11 +42,14 @@ function GuidePage({ description, backTo, sections }) {
 
             <ol className="guide-section__steps">
               {section.steps.map((step) => (
-                <li key={step}>{step}</li>
+                <li key={step.text}>
+                  {step.text}
+                  {step.images?.length > 0 && (
+                    <GuideImages images={step.images} />
+                  )}
+                </li>
               ))}
             </ol>
-
-            <GuideImages images={section.images} />
           </section>
         ))}
       </div>

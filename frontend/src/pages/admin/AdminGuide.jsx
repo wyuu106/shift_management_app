@@ -1,71 +1,97 @@
 import GuidePage from "../../components/GuidePage";
-import registrationRequestImage from "../../assets/admin/registration-request.png";
-import shiftCalendarCompletedImage from "../../assets/admin/shift-calendar-completed.png";
-import shiftCalendarEmptyImage from "../../assets/admin/shift-calendar-empty.png";
-import shiftDayEditImage from "../../assets/admin/shift-day-edit.png";
-import shiftPeriodBusinessDaysImage from "../../assets/admin/shift-period-business-days.png";
-import shiftPeriodFormImage from "../../assets/admin/shift-period-form.png";
-import staffListImage from "../../assets/admin/staff-list.png";
+import periodMenuImage from "../../assets/admin/IMG_7983.jpg";
+import periodFormImage from "../../assets/admin/IMG_7985_marked.jpg";
+import periodSaveImage from "../../assets/admin/IMG_7987_marked.jpg";
+import shiftMenuImage from "../../assets/admin/IMG_7989_menu.jpg";
+import shiftPeriodSelectImage from "../../assets/admin/IMG_7989_marked.jpg";
+import shiftReflectImage from "../../assets/admin/IMG_7990_marked.jpg";
+import shiftDayEditImage from "../../assets/admin/IMG_8006_marked.jpg";
+import shiftCompletedImage from "../../assets/admin/IMG_7993_marked.jpg";
 
 const sections = [
   {
     title: "シフト期間の設定",
-    images: [
-      {
-        src: shiftPeriodFormImage,
-        alt: "シフト期間画面を開き、開始日、終了日、営業日を設定する手順",
-      },
-      {
-        src: shiftPeriodBusinessDaysImage,
-        alt: "営業日を確認してシフト期間を保存する手順",
-      },
-    ],
     steps: [
-      "下部メニューの「シフト期間」を開きます。",
-      "開始日と終了日を入力します。",
-      "必要に応じて営業日を変更します。",
-      "内容を確認して保存します。",
+      {
+        text: "下部メニューの「シフト期間」を開きます。",
+        images: [
+          {
+            src: periodMenuImage,
+            alt: "下部メニューで「シフト期間」を選んだ状態",
+          },
+        ],
+      },
+      {
+        text: "開始日と終了日を入力します。",
+        images: [
+          {
+            src: periodFormImage,
+            alt: "期間名、開始日、終了日を入力する画面",
+          },
+        ],
+      },
+      {
+        text: "必要に応じて営業日を変更します。",
+      },
+      {
+        text: "内容を確認して保存します。",
+        images: [
+          {
+            src: periodSaveImage,
+            alt: "営業日を確認して「この期間で保存」を押す画面",
+          },
+        ],
+      },
     ],
   },
   {
     title: "シフト作成",
-    images: [
-      {
-        src: shiftCalendarEmptyImage,
-        alt: "シフト編集画面を開き、スタッフの希望を反映する手順",
-      },
-      {
-        src: shiftDayEditImage,
-        alt: "営業日のスタッフと備考を編集する手順",
-      },
-      {
-        src: shiftCalendarCompletedImage,
-        alt: "作成した確定シフトを確認して登録する手順",
-      },
-    ],
     steps: [
-      "下部メニューの「シフト編集」を開きます。",
-      "「希望を反映」を押して、スタッフの希望をシフトへ反映します。",
-      "営業日を選び、出勤するスタッフと備考を設定します。",
-      "内容を確認して登録します。",
-    ],
-  },
-  {
-    title: "スタッフ管理・登録許可",
-    images: [
       {
-        src: staffListImage,
-        alt: "登録済みスタッフを確認して削除する手順",
+        text: "下部メニューの「シフト編集」を開きます。",
+        images: [
+          {
+            src: shiftMenuImage,
+            alt: "下部メニューで「シフト編集」を選んだ状態",
+          },
+        ],
       },
       {
-        src: registrationRequestImage,
-        alt: "新規登録申請を承認または却下する手順",
+        text: "「シフト期間」から対象の期間を選びます。",
+        images: [
+          {
+            src: shiftPeriodSelectImage,
+            alt: "シフト編集画面でシフト期間を選ぶ画面",
+          },
+        ],
       },
-    ],
-    steps: [
-      "「その他」から「スタッフ管理」または「登録申請」を開きます。",
-      "スタッフ管理では登録済みスタッフを確認・削除できます。",
-      "登録申請では申請内容を確認し、承認または却下します。",
+      {
+        text: "「希望を反映」を押して、スタッフの希望をシフトへ反映します。",
+        images: [
+          {
+            src: shiftReflectImage,
+            alt: "シフト編集画面の「希望を反映」ボタン",
+          },
+        ],
+      },
+      {
+        text: "営業日を選び、出勤するスタッフと備考を設定します。",
+        images: [
+          {
+            src: shiftDayEditImage,
+            alt: "営業日を選び、出勤するスタッフと備考を設定する画面",
+          },
+        ],
+      },
+      {
+        text: "内容を確認して登録します。",
+        images: [
+          {
+            src: shiftCompletedImage,
+            alt: "完成したシフトを確認して「シフトを登録」を押す画面",
+          },
+        ],
+      },
     ],
   },
 ];

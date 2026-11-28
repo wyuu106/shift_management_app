@@ -30,7 +30,7 @@
 
 .guide-section__heading h2 {
   margin: 2px 0 4px;
-  font-size: 1rem;
+  font-size: 1.15rem;
   line-height: 1.4;
 }
 
@@ -61,9 +61,13 @@
   gap: 10px;
   margin: 0;
   padding-left: 24px;
-  color: #465168;
-  font-size: 0.84rem;
-  line-height: 1.7;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.guide-section__steps .guide-section__images {
+  margin: 10px auto 8px;
 }
 
 .guide-section__steps li::marker {
