@@ -83,6 +83,7 @@ trap on_exit EXIT
 
 if [[ "$source_path" == s3://* ]]; then
   set -a
+  # shellcheck source=/dev/null
   source "$BACKUP_ENV"
   set +a
   aws s3 cp --only-show-errors "$source_path" "$work_dir/restore.dump"
