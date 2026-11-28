@@ -33,6 +33,8 @@ file="$BACKUP_DIR/${DB_NAME}_${timestamp}.dump"
 trap 'rm -f "$file.tmp"' EXIT
 
 umask 077
+# 保存先はrootだけが書けるため、postgresではなくrootがファイルへ書き出す
+# shellcheck disable=SC2024
 sudo -u postgres pg_dump --format=custom "$DB_NAME" > "$file.tmp"
 mv "$file.tmp" "$file"
 echo "保存した: $file"
@@ -45,6 +47,8 @@ fi
 
 # AWS_ACCESS_KEY_ID、AWS_SECRET_ACCESS_KEY、AWS_DEFAULT_REGION、BACKUP_BUCKET を読み込む
 set -a
+# サーバーにだけある設定ファイルのため、shellcheckは追わない
+# shellcheck source=/dev/null
 source "$BACKUP_ENV"
 set +a
 
