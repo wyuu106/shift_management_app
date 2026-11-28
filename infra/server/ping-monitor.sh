@@ -22,6 +22,7 @@ if [[ ! -f "$MONITOR_ENV" ]]; then
   exit 0
 fi
 
+# shellcheck source=/dev/null
 source "$MONITOR_ENV"
 url="${!name:-}"
 
